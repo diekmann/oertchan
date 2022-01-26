@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>laRTC</title>
+    <meta charset="utf-8">
+    <style>
+        textarea {
+            font-size: 10px;
+            width: 420px;
+        }
+    </style>
+    <script src="./adapter.js"></script>
+    <script src="main.js" defer></script>
+</head>
+
+<body>
+    <h1>laRTC</h1>
+    
+    
+    <div style="margin:20px; padding: 10px; border: 1px solid black; background-color: MediumAquamarine;">
+        <div>
+            <textarea id="logarea" rows="8" cols="50" readonly>Log messages will appear here.</textarea>
+        </div>
+        <br>
+        <div>
+            <form  id="sendMessageForm">
+            <label for="message">Enter a message:<br>
+                <input type="text" name="message" id="inputmessage" placeholder="Message text" inputmode="latin" size=40 maxlength=120 disabled>
+            </label>
+            <br>
+            <button id="sendButton" name="sendButton" type="submit" disabled>
+                Send
+            </button>
+            </form>
+        </div>
+        <br>
+        <div id="receivebox">
+            <p>Messages received:</p>
+        </div>
+    </div>
+</body>
+
+</html>
+
