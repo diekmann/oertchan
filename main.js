@@ -2,12 +2,19 @@
 
 // based on https://github.com/mdn/samples-server/blob/master/s/webrtc-simple-datachannel/main.js
 
-
 const logArea = document.getElementById("logarea");
 function logTxt(txt) {
     logArea.value += "\n" + txt;
     logArea.scrollTop = logArea.scrollHeight;
 };
+
+// User ID
+const uid = (() => {
+    let array = new Uint8Array(24);
+    self.crypto.getRandomValues(array);
+    return array.reduce((acc, i) => acc + i.toString(16).padStart(2, 0));
+})();
+console.log(`uid: ${uid}`)
 
 
 const sendButton = document.getElementById('sendButton');
@@ -115,13 +122,23 @@ function setup() {
 	console.log(`got offer ${offer}`);
 	console.log(offer);
 
-    const url = "http://cup1.lars-hupel.de:3000/offer";
+    //const url = "http://cup1.lars-hupel.de:3000/offer";
+    const url = "http://localhost:8080/offer";
 	
 	const response = await fetch(url, {
-		method: "post",
-		headers: { "Content-Type": "application/json" },
+		method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'omit',
+		headers: { 'Content-Type': 'application/json' }, // not allowed by CORS without preflight.
+		// headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
 		body: JSON.stringify(offer)
 	  });
+    console.log(response);
+    if (!response.ok) {
+        console.log(`error talking to ${url}: ` + response.statusText);
+        return;
+    }
 	console.log(await response.json());
 })();
 
