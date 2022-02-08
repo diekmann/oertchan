@@ -135,7 +135,7 @@ function setup() {
             'Content-Type': 'application/json'
         }, // not allowed by CORS without preflight.
         // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
-        body: JSON.stringify(offer)
+        body: JSON.stringify({'uid': uid, 'offer': offer})
     });
     console.log(response);
     if (!response.ok) {
