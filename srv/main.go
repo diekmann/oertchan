@@ -17,6 +17,15 @@ type Store struct {
 	}
 }
 
+func NewStore() *Store {
+	return &Store{
+		content: make(map[string]struct {
+			value  string
+			notify chan<- string
+		}),
+	}
+}
+
 func (s *Store) Add(k string, v string) <-chan string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -37,10 +46,14 @@ func (s *Store) Remove(k string) {
 	defer s.mu.Unlock()
 
 	delete(s.content, k)
-    //TODO: close chan?
+	//TODO: close chan?
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+type offer struct {
+	store *Store
+}
+
+func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
 	ctx := r.Context()
 
@@ -63,27 +76,34 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = string(offer)
 
+	answer := s.store.Add(body.Uid, string(offer))
+	defer s.store.Remove(body.Uid)
+
 	// echo -e 'POST /offer HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 6\r\n\r\n"yolo"\r\n' | nc -v 127.0.0.1 8080
 	// echo -e 'POST /offer HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 28\r\n\r\n{"uid":"yolo","offer":"lol"}\r\n' | nc -v 127.0.0.1 8080
 	w.Header().Set("Content-Type", "application/json")
 	//fmt.Fprintf(w, `{"request": %q, "body":%s}`, r.URL.Path[1:], payload)
 	select {
+	case a := <-answer:
+		log.Printf("got answer: %q", a)
 	case <-ctx.Done():
 		log.Printf("ctx.Done (client closed connection)")
 		return
 	}
+
+	log.Printf("%s", s.store.content)
 }
 
 func main() {
 	fmt.Println("Hello, world")
-	http.HandleFunc("/offer", handler)
+	store := NewStore()
+	http.Handle("/offer", &offer{store})
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 var stop = errors.New("stop")
 
 func corsPost(w http.ResponseWriter, r *http.Request) error {
-	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
 	if r.Method == "OPTIONS" {
 		// preflight cors.
 		w.Header().Set("Access-Control-Allow-Origin", "*")
