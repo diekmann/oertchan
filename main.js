@@ -97,7 +97,6 @@ function setup() {
             if (c) {
                 // Empty candidate signals end of candidates.
                 if (!c.candidate) {
-                    console.log("UNEXPECTED: got all ICE candidates");
                     return
                 }
                 logTxt(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
@@ -120,33 +119,67 @@ function setup() {
 
 (async () => {
     let offer = await setup();
-    console.log(`got offer ${offer}`);
-    console.log(offer);
+    console.log(`got offer:`, offer);
 
     //const url = "http://cup1.lars-hupel.de:3000/offer";
     const url = "http://localhost:8080/offer";
 
-    const response = await fetch(url, {
-        method: 'POST',
-        mode: 'cors',
-        cache: 'no-cache',
-        credentials: 'omit',
-        headers: {
-            'Content-Type': 'application/json'
-        }, // not allowed by CORS without preflight.
-        // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
-        body: JSON.stringify({'uid': uid, 'offer': offer})
-    });
-    console.log(response);
-    if (!response.ok) {
-        console.log(`error talking to ${url}: ` + response.statusText);
-        return;
-    }
-    console.log(await response.json());
+    console.log(`trying to fetch ${url}`);
+    fetch(url, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'application/json'
+            }, // not allowed by CORS without preflight.
+            // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
+            body: JSON.stringify({
+                'uid': uid,
+                'offer': offer
+            })
+        })
+        .then(response => {
+            console.log(`POST ${url}:`, response);
+            if (!response.ok) {
+                e = `error talking to ${url}: ` + response.statusText;
+                throw e;
+            }
+            return response.json();
+        })
+        .then(data => console.log(`JSON for ${url}:`, data))
+        .catch(e => console.log("posting offer error: ", e));
+
 })();
 
 
+(async () => {
+    console.log(`trying to accept something`);
 
+    const url = `http://localhost:8080/accept?uid=${uid}`;
+
+
+    console.log(`trying to fetch ${url}`);
+    fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        })
+        .then(response => {
+            console.log(`GET ${url}:`, response);
+            if (!response.ok) {
+                e = `error talking to ${url}: ` + response.statusText;
+                throw e;
+            }
+            return response.json();
+        })
+        .then(data => console.log(`JSON for ${url}:`, data))
+        .catch(e => console.log("fetching accept error: ", e));
+})();
 
 
 
