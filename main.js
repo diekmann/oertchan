@@ -142,13 +142,15 @@ function setup() {
         .then(response => {
             console.log(`POST ${url}:`, response);
             if (!response.ok) {
-                e = `error talking to ${url}: ` + response.statusText;
+                const e = `error talking to ${url}: ` + response.statusText;
                 throw e;
             }
             return response.json();
         })
         .then(data => console.log(`JSON for ${url}:`, data))
-        .catch(e => console.log("posting offer error: ", e));
+        .catch((e) => {
+            console.error("posting offer error: ", e);
+        });
 
 })();
 
@@ -172,13 +174,15 @@ function setup() {
         .then(response => {
             console.log(`GET ${url}:`, response);
             if (!response.ok) {
-                e = `error talking to ${url}: ` + response.statusText;
+                const e = `error talking to ${url}: ` + response.statusText;
                 throw e;
             }
             return response.json();
         })
         .then(data => console.log(`JSON for ${url}:`, data))
-        .catch(e => console.log("fetching accept error: ", e));
+        .catch((e) => {
+            console.error("fetching accept error: ", e);
+        });
 })();
 
 

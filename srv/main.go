@@ -125,6 +125,26 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := corsAllow(w, r, []string{"GET", "POST"}); err != nil {
 		return
 	}
+
+	// if GET
+	uids, ok := r.URL.Query()["uid"]
+	if !ok {
+		http.Error(w, "need uid parameter", http.StatusBadRequest)
+		return
+	}
+	if len(uids) != 1 {
+		http.Error(w, "need exactly one uid parameter", http.StatusBadRequest)
+		return
+	}
+
+	offer, err := s.store.GetOther(uids[0])
+	if err != nil {
+		http.Error(w, fmt.Sprintf("no offer available: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"uid": %q, "offer":%q}`, offer.uid, offer.offer)
 }
 
 func main() {
