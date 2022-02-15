@@ -90,7 +90,7 @@ function setup(logger) {
                 logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
                 theOffer.candidates.push(c);
             } else {
-                logger("All ICE candidates have been sent");
+                logger("All ICE candidates are collected");
                 resolve(theOffer);
             }
         };
@@ -177,11 +177,31 @@ function setup(logger) {
     logTxt_accept(`trying to accept something`);
     let con = newRTCPeerConnection(logTxt_accept);
 
+
+    let candidatesPromise = new Promise(resolve => {
+        let candidates = [];
+        // Collect the ICE candidates.
+        con.onicecandidate = function(event) {
+            const c = event.candidate;
+            if (c) {
+                // Empty candidate signals end of candidates.
+                if (!c.candidate) {
+                    return
+                }
+                logTxt_accept(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
+                candidates.push(c);
+            } else {
+                logTxt_accept("All ICE candidates are collected");
+                resolve(candidates);
+            }
+        };
+    });
+
     const url = `http://localhost:8080/accept?uid=${uid}`;
 
 
     logTxt_accept(`trying to fetch ${url}`);
-    fetch(url, {
+    let answer = await fetch(url, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-cache',
@@ -214,15 +234,25 @@ function setup(logger) {
                     .catch((e) => logTxt_accept(`error adding ice candidate: ${e}`));
             };
 
-
             return con.createAnswer()
         })
         .then(answer => {
             logTxt_accept("answer created");
             con.setLocalDescription(answer);
-            logTxt_accept("TODO send answer");
+            return answer;
         })
         .catch((e) => logTxt_accept(`fetching accept error: ${e}`));
+
+
+
+
+    let theAnswer = {
+        candidates: await candidatesPromise,
+        answer: answer,
+    };
+    logTxt_accept(`have the answer: ${theAnswer}`);
+    //console.log(theAnswer)
+    logTxt_accept("TODO send answer");
 
 
 })();
