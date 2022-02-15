@@ -2,11 +2,25 @@
 
 // based on https://github.com/mdn/samples-server/blob/master/s/webrtc-simple-datachannel/main.js
 
-const logArea = document.getElementById("logarea");
 
-function logTxt(txt) {
+function logTo(logArea, txt) {
     logArea.value += "\n" + txt;
-    logArea.scrollTop = logArea.scrollHeight;
+    logArea.scrollTop = logArea_generic.scrollHeight;
+};
+
+const logArea_generic = document.getElementById("logarea_generic");
+function logTxt_generic(txt) {
+    logTo(logArea_generic, txt);
+};
+
+const logArea_offer = document.getElementById("logarea_offer");
+function logTxt_offer(txt) {
+    logTo(logArea_offer, txt);
+};
+
+const logArea_accept = document.getElementById("logarea_accept");
+function logTxt_accept(txt) {
+    logTo(logArea_accept, txt);
 };
 
 // User ID
@@ -15,7 +29,7 @@ const uid = (() => {
     self.crypto.getRandomValues(array);
     return array.reduce((acc, i) => acc + i.toString(16).padStart(2, 0));
 })();
-console.log(`uid: ${uid}`)
+logTxt_generic(`My uid: ${uid}`)
 
 
 const sendButton = document.getElementById('sendButton');
@@ -36,7 +50,7 @@ let sendChannel = null; // RTCDataChannel for the chat
 
 
 
-function setup() {
+function setup(logger) {
     return new Promise(resolve => {
         // Without a stun server, we will only get .local candidates.
         localConnection = new RTCPeerConnection({
@@ -44,14 +58,14 @@ function setup() {
                 'urls': 'stun:stun.l.google.com:19302'
             }]
         });
-        logTxt(`Connection state is ${localConnection.connectionState}`);
+        logger(`Connection state is ${localConnection.connectionState}`);
 
         localConnection.onsignalingstatechange = function(event) {
-            logTxt("Signaling state change: " + localConnection.signalingState);
+            logger("Signaling state change: " + localConnection.signalingState);
         };
 
         localConnection.oniceconnectionstatechange = function(event) {
-            logTxt("ICE connection state change: " + localConnection.iceConnectionState);
+            logger("ICE connection state change: " + localConnection.iceConnectionState);
         };
 
         // Create the data channel and establish its event listeners
@@ -60,7 +74,7 @@ function setup() {
             // handleSendChannelStatusChange
             if (sendChannel) {
                 const state = sendChannel.readyState;
-                logTxt("Send channel's status has changed to " + state);
+                logger("Send channel's status has changed to " + state);
 
                 if (state === "open") {
                     messageInputBox.disabled = false;
@@ -75,12 +89,12 @@ function setup() {
 
         localConnection.ondatachannel = function(event) {
             const c = event.channel;
-            logTxt(`The channel should be open now: ${c.readyState}`);
-            logTxt(`Connection state should be connected: ${localConnection.connectionState}`);
+            logger(`The channel should be open now: ${c.readyState}`);
+            logger(`Connection state should be connected: ${localConnection.connectionState}`);
             // Receiving a message.
             c.onmessage = function(event) {
                 const remotePeerName = otherPeer();
-                console.log(`handling received message from ${remotePeerName}.`)
+                logger(`handling received message from ${remotePeerName}.`)
                 appendChatBox(`From ${remotePeerName}: ${event.data}`, remotePeerName);
             };
         };
@@ -99,17 +113,17 @@ function setup() {
                 if (!c.candidate) {
                     return
                 }
-                logTxt(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
+                logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
                 theOffer.candidates.push(c);
             } else {
-                console.log("All ICE candidates have been sent");
+                logger("All ICE candidates have been sent");
                 resolve(theOffer);
             }
         };
 
         localConnection.createOffer()
             .then(offer => {
-                console.log("offer created");
+                logger("offer created");
                 theOffer.offer = offer;
                 return localConnection.setLocalDescription(offer)
             })
@@ -118,13 +132,13 @@ function setup() {
 };
 
 (async () => {
-    let offer = await setup();
-    console.log(`got offer:`, offer);
+    let offer = await setup(logTxt_offer);
+    logTxt_offer(`my offer: ${offer}`);
 
     //const url = "http://cup1.lars-hupel.de:3000/offer";
     const url = "http://localhost:8080/offer";
 
-    console.log(`trying to fetch ${url}`);
+    logTxt_offer(`trying to fetch ${url}`);
     fetch(url, {
             method: 'POST',
             mode: 'cors',
@@ -140,28 +154,28 @@ function setup() {
             })
         })
         .then(response => {
-            console.log(`POST ${url}:`, response);
+            logTxt_offer(`POST ${url}: ${response}`);
             if (!response.ok) {
                 const e = `error talking to ${url}: ` + response.statusText;
                 throw e;
             }
             return response.json();
         })
-        .then(data => console.log(`JSON for ${url}:`, data))
+        .then(data => logTxt_offer(`JSON for ${url}: ${data}`))
         .catch((e) => {
-            console.error("posting offer error: ", e);
+            logTxt_offer(`posting offer error: ${e}`);
         });
 
 })();
 
 
 (async () => {
-    console.log(`trying to accept something`);
+    logTxt_accept(`trying to accept something`);
 
     const url = `http://localhost:8080/accept?uid=${uid}`;
 
 
-    console.log(`trying to fetch ${url}`);
+    logTxt_accept(`trying to fetch ${url}`);
     fetch(url, {
             method: 'GET',
             mode: 'cors',
@@ -172,16 +186,16 @@ function setup() {
             },
         })
         .then(response => {
-            console.log(`GET ${url}:`, response);
+            logTxt_accept(`GET ${url}: ${response}`);
             if (!response.ok) {
                 const e = `error talking to ${url}: ` + response.statusText;
                 throw e;
             }
             return response.json();
         })
-        .then(data => console.log(`JSON for ${url}:`, data))
+        .then(data => logTxt_accept(`JSON for ${url}: ${JSON.stringify(data)}`))
         .catch((e) => {
-            console.error("fetching accept error: ", e);
+            logTxt_accept(`fetching accept error: ${e}`);
         });
 })();
 
