@@ -94,7 +94,7 @@ function setup(logger) {
                 theOffer.candidates.push(c);
             } else {
                 logger("All ICE candidates are collected");
-                resolve(theOffer);
+                resolve([con, theOffer]);
             }
         };
 
@@ -139,169 +139,182 @@ function setup(logger) {
 };
 
 (async () => {
-    let offer = await setup(logTxt_offer);
-    logTxt_offer(`my offer: ${offer}`);
+        let [con, offer] = await setup(logTxt_offer);
+        logTxt_offer(`my offer: ${offer}`);
 
-    const url = `${srv}/offer`;
+        const url = `${srv}/offer`;
 
-    logTxt_offer(`POSTing my offer to ${url}`);
-    fetch(url, {
-            method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
-            headers: {
-                'Content-Type': 'application/json'
-            }, // not allowed by CORS without preflight.
-            // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
-            body: JSON.stringify({
-                'uid': uid,
-                'offer': offer
+        logTxt_offer(`POSTing my offer to ${url}`);
+        fetch(url, {
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json'
+                }, // not allowed by CORS without preflight.
+                // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
+                body: JSON.stringify({
+                    'uid': uid,
+                    'offer': offer
+                })
             })
-        })
-        .then(response => {
-            logTxt_offer(`POST ${url}: ${response}`);
-            if (!response.ok) {
-                const e = `error talking to ${url}: ` + response.statusText;
-                throw e;
-            }
-            return response.json();
-        })
-        .then(data => {
-            logTxt_offer(`got answer: JSON for ${url}: ${data}`);
+            .then(response => {
+                logTxt_offer(`POST ${url}: ${response}`);
+                if (!response.ok) {
+                    const e = `error talking to ${url}: ` + response.statusText;
+                    throw e;
+                }
+                return response.json();
             })
-        .catch((e) => {
-            logTxt_offer(`posting offer error: ${e}`);
+            .then(data => {
+                    logTxt_offer(`got answer: JSON for ${url}: ${data}`);
+                    const uidRemote = data.uidRemote
+                    const v = JSON.parse(data.answer);
+                    const answer = v.answer;
+                    const candidates = v.candidates;
+                    console.log(data)
+
+                    logTxt_offer(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
+
+                    con.setRemoteDescription(answer).catch(handleError);
+
+                    for (let i = 0; i < candidates.length; ++i) {
+                        con.addIceCandidate(candidates[i]).catch(handleError);
+                    }
+                    })
+                .catch((e) => {
+                    logTxt_offer(`posting offer error: ${e}`);
+                });
+
+            })();
+
+
+    (async () => {
+        logTxt_accept(`trying to accept something`);
+        let con = newRTCPeerConnection(logTxt_accept);
+
+
+        let candidatesPromise = new Promise(resolve => {
+            let candidates = [];
+            // Collect the ICE candidates.
+            con.onicecandidate = function(event) {
+                const c = event.candidate;
+                if (c) {
+                    // Empty candidate signals end of candidates.
+                    if (!c.candidate) {
+                        return
+                    }
+                    logTxt_accept(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
+                    candidates.push(c);
+                } else {
+                    logTxt_accept("All ICE candidates are collected");
+                    resolve(candidates);
+                }
+            };
         });
 
-})();
+        const url = `${srv}/accept?uid=${uid}`;
+
+        let uidRemote = "";
 
 
-(async () => {
-    logTxt_accept(`trying to accept something`);
-    let con = newRTCPeerConnection(logTxt_accept);
-
-
-    let candidatesPromise = new Promise(resolve => {
-        let candidates = [];
-        // Collect the ICE candidates.
-        con.onicecandidate = function(event) {
-            const c = event.candidate;
-            if (c) {
-                // Empty candidate signals end of candidates.
-                if (!c.candidate) {
-                    return
-                }
-                logTxt_accept(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
-                candidates.push(c);
-            } else {
-                logTxt_accept("All ICE candidates are collected");
-                resolve(candidates);
-            }
-        };
-    });
-
-    const url = `${srv}/accept?uid=${uid}`;
-
-    let uidRemote = "";
-
-
-    logTxt_accept(`trying to fetch ${url}`);
-    let answer = await fetch(url, {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-        })
-        .then(response => {
-            logTxt_accept(`GET ${url}: ${response}`);
-            if (!response.ok) {
-                const e = `error talking to ${url}: ` + response.statusText;
-                throw e;
-            }
-            return response.json();
-        })
-        .then(data => {
-            logTxt_accept(`JSON for ${url}: ${data}`);
-            uidRemote = data.uid
-            const v = JSON.parse(data.offer);
-            const candidates = v.candidates;
-            const offer = v.offer;
-            logTxt_accept(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
-
-            con.setRemoteDescription(offer).catch(handleError);
-
-            for (let i = 0; i < candidates.length; ++i) {
-                con.addIceCandidate(candidates[i])
-                    .then(logTxt_accept("candidate from remote added."))
-                    .catch((e) => logTxt_accept(`error adding ice candidate: ${e}`));
-            };
-
-            return con.createAnswer()
-        })
-        .then(answer => {
-            logTxt_accept("answer created");
-            con.setLocalDescription(answer);
-            return answer;
-        })
-        .catch((e) => logTxt_accept(`fetching accept error: ${e}`));
-
-
-    let theAnswer = {
-        candidates: await candidatesPromise,
-        answer: answer,
-    };
-    logTxt_accept(`have the answer: ${theAnswer}`);
-    //console.log(theAnswer)
-    logTxt_accept("TODO send answer");
-
-    fetch(url, {
-            method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
-            headers: {
-                'Content-Type': 'application/json'
-            }, // not allowed by CORS without preflight.
-            // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
-            body: JSON.stringify({
-                'uidRemote': uidRemote,
-                'answer': theAnswer,
+        logTxt_accept(`trying to fetch ${url}`);
+        let answer = await fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
             })
-        })
-        .then(response => logTxt_accept(`POSTing answer: ${response}, ok:${response.ok}, status:${response.statusText}`))
-        .catch((e) => logTxt_accept(`POSTing accept error: ${e}`));
+            .then(response => {
+                logTxt_accept(`GET ${url}: ${response}`);
+                if (!response.ok) {
+                    const e = `error talking to ${url}: ` + response.statusText;
+                    throw e;
+                }
+                return response.json();
+            })
+            .then(data => {
+                logTxt_accept(`JSON for ${url}: ${data}`);
+                uidRemote = data.uid
+                const v = JSON.parse(data.offer);
+                const candidates = v.candidates;
+                const offer = v.offer;
+                logTxt_accept(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
+
+                con.setRemoteDescription(offer).catch(handleError);
+
+                for (let i = 0; i < candidates.length; ++i) {
+                    con.addIceCandidate(candidates[i])
+                        .then(logTxt_accept("candidate from remote added."))
+                        .catch((e) => logTxt_accept(`error adding ice candidate: ${e}`));
+                };
+
+                return con.createAnswer()
+            })
+            .then(answer => {
+                logTxt_accept("answer created");
+                con.setLocalDescription(answer);
+                return answer;
+            })
+            .catch((e) => logTxt_accept(`fetching accept error: ${e}`));
 
 
-})();
+        let theAnswer = {
+            candidates: await candidatesPromise,
+            answer: answer,
+        };
+        logTxt_accept(`have the answer: ${theAnswer}`);
+        //console.log(theAnswer)
+        logTxt_accept("TODO send answer");
+
+        fetch(url, {
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json'
+                }, // not allowed by CORS without preflight.
+                // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
+                body: JSON.stringify({
+                    'uidRemote': uidRemote,
+                    'answer': theAnswer,
+                })
+            })
+            .then(response => logTxt_accept(`POSTing answer: ${response}, ok:${response.ok}, status:${response.statusText}`))
+            .catch((e) => logTxt_accept(`POSTing accept error: ${e}`));
+
+
+    })();
 
 
 
 
-// Handles clicks on the "Send" button by transmitting a message.
-sendMessageForm.addEventListener('submit', function(event) {
-    console.log(`sendng message.`)
+    // Handles clicks on the "Send" button by transmitting a message.
+    sendMessageForm.addEventListener('submit', function(event) {
+        console.log(`sendng message.`)
 
-    // don't actually submit the HTML form, stay on the same page.
-    event.preventDefault();
+        // don't actually submit the HTML form, stay on the same page.
+        event.preventDefault();
 
-    const message = messageInputBox.value;
-    sendChannel.send(message);
+        const message = messageInputBox.value;
+        sendChannel.send(message);
 
-    appendChatBox(`${message}`);
+        appendChatBox(`${message}`);
 
-    // Clear the input box and re-focus it, so that we're
-    // ready for the next message.
-    messageInputBox.value = "";
-    messageInputBox.focus();
-}, false);
+        // Clear the input box and re-focus it, so that we're
+        // ready for the next message.
+        messageInputBox.value = "";
+        messageInputBox.focus();
+    }, false);
 
 
-function handleError(error) {
-    const s = "ERROR: " + error.toString()
-    console.log(error);
-    logTxt_generic(s);
-}
+    function handleError(error) {
+        const s = "ERROR: " + error.toString()
+        console.log(error);
+        logTxt_generic(s);
+    }
