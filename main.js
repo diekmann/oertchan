@@ -167,7 +167,9 @@ function setup(logger) {
             }
             return response.json();
         })
-        .then(data => logTxt_offer(`JSON for ${url}: ${data}`))
+        .then(data => {
+            logTxt_offer(`got answer: JSON for ${url}: ${data}`);
+            })
         .catch((e) => {
             logTxt_offer(`posting offer error: ${e}`);
         });

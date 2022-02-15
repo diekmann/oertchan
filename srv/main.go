@@ -69,6 +69,21 @@ func (s *Store) GetOther(self string) (*remoteOffer, error) {
 	return nil, fmt.Errorf("out of %d entries, none matches", len(s.content))
 }
 
+func (s *Store) Answer(remoteUID string, answer string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var val val
+	var ok bool
+	if val, ok = s.content[remoteUID]; !ok {
+		return fmt.Errorf("remoteUID not found")
+	}
+	val.notify <- answer
+	//TODO: cleanup s.content[remoteUID]?
+
+	return nil
+}
+
 type offer struct {
 	store *Store
 }
@@ -107,12 +122,13 @@ func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	select {
 	case a := <-answer:
 		log.Printf("got answer: %q", a)
+		fmt.Fprintf(w, `{"uidRemote": "TODO", "answer":%q}`, a)
 	case <-ctx.Done():
 		log.Printf("ctx.Done (client closed connection)")
 		return
 	}
 
-	log.Printf("%s", s.store.content)
+	log.Printf("store size: %v", len(s.store.content))
 }
 
 type accept struct {
@@ -135,16 +151,39 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "need exactly one uid parameter", http.StatusBadRequest)
 		return
 	}
+	uid := uids[0]
 
-	// if GET
-	offer, err := s.store.GetOther(uids[0])
-	if err != nil {
-		http.Error(w, fmt.Sprintf("no offer available: %v", err), http.StatusBadRequest)
-		return
+	switch r.Method {
+	case "GET":
+		offer, err := s.store.GetOther(uid)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("no offer available: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"uid": %q, "offer":%q}`, offer.uid, offer.offer)
+	case "POST":
+		var body struct {
+			UidRemote string
+			Answer    interface{}
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, fmt.Sprintf("yo, invalid request: %v", err), http.StatusBadRequest) // leaks data!!
+			return
+		}
+		answer, err := json.Marshal(body.Answer)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("invalid json request: %v", err), http.StatusBadRequest) // leaks data!!
+			return
+		}
+		// TODO: improve answer type
+		if err := s.store.Answer(body.UidRemote, string(answer)); err != nil {
+			http.Error(w, fmt.Sprintf("could not answer: %v", err), http.StatusBadRequest) // leaks data!!
+			return
+		}
+		log.Printf("answer from %s to %s relayed", uid, body.UidRemote)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"uid": %q, "offer":%q}`, offer.uid, offer.offer)
 }
 
 func main() {
