@@ -52,6 +52,9 @@ function appendChatBox(txt) {
 let sendChannel = null; // RTCDataChannel for the chat
 
 
+//const srv = "http://cup1.lars-hupel.de:3000";
+const srv = "http://localhost:8080";
+
 function newRTCPeerConnection(logger) {
     // Without a stun server, we will only get .local candidates.
     let con = new RTCPeerConnection({
@@ -139,8 +142,7 @@ function setup(logger) {
     let offer = await setup(logTxt_offer);
     logTxt_offer(`my offer: ${offer}`);
 
-    //const url = "http://cup1.lars-hupel.de:3000/offer";
-    const url = "http://localhost:8080/offer";
+    const url = `${srv}/offer`;
 
     logTxt_offer(`POSTing my offer to ${url}`);
     fetch(url, {
@@ -197,7 +199,9 @@ function setup(logger) {
         };
     });
 
-    const url = `http://localhost:8080/accept?uid=${uid}`;
+    const url = `${srv}/accept?uid=${uid}`;
+
+    let uidRemote = "";
 
 
     logTxt_accept(`trying to fetch ${url}`);
@@ -220,11 +224,11 @@ function setup(logger) {
         })
         .then(data => {
             logTxt_accept(`JSON for ${url}: ${data}`);
-            const remoteUID = data.uid
+            uidRemote = data.uid
             const v = JSON.parse(data.offer);
             const candidates = v.candidates;
             const offer = v.offer;
-            logTxt_accept(`From ${remoteUID} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
+            logTxt_accept(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
 
             con.setRemoteDescription(offer).catch(handleError);
 
@@ -244,8 +248,6 @@ function setup(logger) {
         .catch((e) => logTxt_accept(`fetching accept error: ${e}`));
 
 
-
-
     let theAnswer = {
         candidates: await candidatesPromise,
         answer: answer,
@@ -253,6 +255,23 @@ function setup(logger) {
     logTxt_accept(`have the answer: ${theAnswer}`);
     //console.log(theAnswer)
     logTxt_accept("TODO send answer");
+
+    fetch(url, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'application/json'
+            }, // not allowed by CORS without preflight.
+            // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
+            body: JSON.stringify({
+                'uidRemote': uidRemote,
+                'answer': theAnswer,
+            })
+        })
+        .then(response => logTxt_accept(`POSTing answer: ${response}, ok:${response.ok}, status:${response.statusText}`))
+        .catch((e) => logTxt_accept(`POSTing accept error: ${e}`));
 
 
 })();

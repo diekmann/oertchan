@@ -126,7 +126,6 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if GET
 	uids, ok := r.URL.Query()["uid"]
 	if !ok {
 		http.Error(w, "need uid parameter", http.StatusBadRequest)
@@ -137,6 +136,7 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if GET
 	offer, err := s.store.GetOther(uids[0])
 	if err != nil {
 		http.Error(w, fmt.Sprintf("no offer available: %v", err), http.StatusBadRequest)
