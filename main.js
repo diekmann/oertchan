@@ -9,16 +9,19 @@ function logTo(logArea, txt) {
 };
 
 const logArea_generic = document.getElementById("logarea_generic");
+
 function logTxt_generic(txt) {
     logTo(logArea_generic, txt);
 };
 
 const logArea_offer = document.getElementById("logarea_offer");
+
 function logTxt_offer(txt) {
     logTo(logArea_offer, txt);
 };
 
 const logArea_accept = document.getElementById("logarea_accept");
+
 function logTxt_accept(txt) {
     logTo(logArea_accept, txt);
 };
@@ -45,31 +48,55 @@ function appendChatBox(txt) {
     receiveBox.appendChild(el);
 }
 
-let localConnection = null; // RTCPeerConnection
+// TODO: move
 let sendChannel = null; // RTCDataChannel for the chat
 
 
+function newRTCPeerConnection(logger) {
+    // Without a stun server, we will only get .local candidates.
+    let con = new RTCPeerConnection({
+        'iceServers': [{
+            'urls': 'stun:stun.l.google.com:19302'
+        }]
+    });
+    logger(`Connection state is ${con.connectionState}`);
+
+    con.onsignalingstatechange = function(event) {
+        logger("Signaling state change: " + con.signalingState);
+    };
+
+    con.oniceconnectionstatechange = function(event) {
+        logger("ICE connection state change: " + con.iceConnectionState);
+    };
+    return con
+}
 
 function setup(logger) {
     return new Promise(resolve => {
-        // Without a stun server, we will only get .local candidates.
-        localConnection = new RTCPeerConnection({
-            'iceServers': [{
-                'urls': 'stun:stun.l.google.com:19302'
-            }]
-        });
-        logger(`Connection state is ${localConnection.connectionState}`);
-
-        localConnection.onsignalingstatechange = function(event) {
-            logger("Signaling state change: " + localConnection.signalingState);
+        let con = newRTCPeerConnection(logger);
+        let theOffer = {
+            candidates: [],
+            offer: "",
         };
 
-        localConnection.oniceconnectionstatechange = function(event) {
-            logger("ICE connection state change: " + localConnection.iceConnectionState);
+        // Collect the ICE candidates.
+        con.onicecandidate = function(event) {
+            const c = event.candidate;
+            if (c) {
+                // Empty candidate signals end of candidates.
+                if (!c.candidate) {
+                    return
+                }
+                logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
+                theOffer.candidates.push(c);
+            } else {
+                logger("All ICE candidates have been sent");
+                resolve(theOffer);
+            }
         };
 
         // Create the data channel and establish its event listeners
-        sendChannel = localConnection.createDataChannel("sendChannel");
+        sendChannel = con.createDataChannel("sendChannel");
         sendChannel.onopen = sendChannel.onclose = function(event) {
             // handleSendChannelStatusChange
             if (sendChannel) {
@@ -87,10 +114,10 @@ function setup(logger) {
             }
         };
 
-        localConnection.ondatachannel = function(event) {
+        con.ondatachannel = function(event) {
             const c = event.channel;
             logger(`The channel should be open now: ${c.readyState}`);
-            logger(`Connection state should be connected: ${localConnection.connectionState}`);
+            logger(`Connection state should be connected: ${con.connectionState}`);
             // Receiving a message.
             c.onmessage = function(event) {
                 const remotePeerName = otherPeer();
@@ -99,35 +126,12 @@ function setup(logger) {
             };
         };
 
-
-        let theOffer = {
-            candidates: [],
-            offer: "",
-        };
-
-        // Collect the ICE candidates.
-        localConnection.onicecandidate = function(event) {
-            const c = event.candidate;
-            if (c) {
-                // Empty candidate signals end of candidates.
-                if (!c.candidate) {
-                    return
-                }
-                logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
-                theOffer.candidates.push(c);
-            } else {
-                logger("All ICE candidates have been sent");
-                resolve(theOffer);
-            }
-        };
-
-        localConnection.createOffer()
+        con.createOffer()
             .then(offer => {
-                logger("offer created");
+                logger("have offer");
                 theOffer.offer = offer;
-                return localConnection.setLocalDescription(offer)
-            })
-            .catch(handleError);
+                return con.setLocalDescription(offer);
+            });
     });
 };
 
@@ -138,7 +142,7 @@ function setup(logger) {
     //const url = "http://cup1.lars-hupel.de:3000/offer";
     const url = "http://localhost:8080/offer";
 
-    logTxt_offer(`trying to fetch ${url}`);
+    logTxt_offer(`POSTing my offer to ${url}`);
     fetch(url, {
             method: 'POST',
             mode: 'cors',
@@ -171,6 +175,7 @@ function setup(logger) {
 
 (async () => {
     logTxt_accept(`trying to accept something`);
+    let con = newRTCPeerConnection(logTxt_accept);
 
     const url = `http://localhost:8080/accept?uid=${uid}`;
 
@@ -193,10 +198,33 @@ function setup(logger) {
             }
             return response.json();
         })
-        .then(data => logTxt_accept(`JSON for ${url}: ${JSON.stringify(data)}`))
-        .catch((e) => {
-            logTxt_accept(`fetching accept error: ${e}`);
-        });
+        .then(data => {
+            logTxt_accept(`JSON for ${url}: ${data}`);
+            const remoteUID = data.uid
+            const v = JSON.parse(data.offer);
+            const candidates = v.candidates;
+            const offer = v.offer;
+            logTxt_accept(`From ${remoteUID} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
+
+            con.setRemoteDescription(offer).catch(handleError);
+
+            for (let i = 0; i < candidates.length; ++i) {
+                con.addIceCandidate(candidates[i])
+                    .then(logTxt_accept("candidate from remote added."))
+                    .catch((e) => logTxt_accept(`error adding ice candidate: ${e}`));
+            };
+
+
+            return con.createAnswer()
+        })
+        .then(answer => {
+            logTxt_accept("answer created");
+            con.setLocalDescription(answer);
+            logTxt_accept("TODO send answer");
+        })
+        .catch((e) => logTxt_accept(`fetching accept error: ${e}`));
+
+
 })();
 
 
@@ -223,6 +251,6 @@ sendMessageForm.addEventListener('submit', function(event) {
 
 function handleError(error) {
     const s = "ERROR: " + error.toString()
-    console.log(s);
-    logTxt(s);
+    console.log(error);
+    logTxt_generic(s);
 }
