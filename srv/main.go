@@ -128,7 +128,7 @@ func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("store size: %v", len(s.store.content))
+	log.Printf("store size: %v", len(s.store.content)) // Data race here!
 }
 
 type accept struct {

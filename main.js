@@ -48,8 +48,6 @@ function appendChatBox(txt) {
     receiveBox.appendChild(el);
 }
 
-// TODO: move
-let sendChannel = null; // RTCDataChannel for the chat
 
 
 //const srv = "http://cup1.lars-hupel.de:3000";
@@ -98,7 +96,15 @@ function setup(logger) {
             }
         };
 
-        // Create the data channel and establish its event listeners
+        con.createOffer()
+            .then(offer => {
+                logger("have offer");
+                theOffer.offer = offer;
+                return con.setLocalDescription(offer);
+            });
+
+
+        let sendChannel = null; // RTCDataChannel to actually talk to peers.
         sendChannel = con.createDataChannel("sendChannel");
         sendChannel.onopen = sendChannel.onclose = function(event) {
             // handleSendChannelStatusChange
@@ -107,34 +113,22 @@ function setup(logger) {
                 logger("Send channel's status has changed to " + state);
 
                 if (state === "open") {
-                    messageInputBox.disabled = false;
-                    messageInputBox.focus();
-                    sendButton.disabled = false;
-                } else {
-                    messageInputBox.disabled = true;
-                    sendButton.disabled = true;
+                    logger("Sending a Howdy!");
+                    sendChannel.send(`Howdy! ${uid} just connected.`);
                 }
             }
         };
-
         con.ondatachannel = function(event) {
             const c = event.channel;
             logger(`The channel should be open now: ${c.readyState}`);
             logger(`Connection state should be connected: ${con.connectionState}`);
             // Receiving a message.
             c.onmessage = function(event) {
-                const remotePeerName = otherPeer();
-                logger(`handling received message from ${remotePeerName}.`)
-                appendChatBox(`From ${remotePeerName}: ${event.data}`, remotePeerName);
+                //TODO
+                logger(`handling received message `)
+                appendChatBox(`From ???: ${event.data}`);
             };
         };
-
-        con.createOffer()
-            .then(offer => {
-                logger("have offer");
-                theOffer.offer = offer;
-                return con.setLocalDescription(offer);
-            });
     });
 };
 
@@ -187,6 +181,8 @@ function setup(logger) {
             logTxt_offer(`posting offer error: ${e}`);
         });
 
+
+
 })();
 
 
@@ -194,6 +190,31 @@ function setup(logger) {
     logTxt_accept(`trying to accept something`);
     let con = newRTCPeerConnection(logTxt_accept);
 
+    let sendChannel = null; // RTCDataChannel to actually talk to peers.
+    sendChannel = con.createDataChannel("sendChannel");
+    sendChannel.onopen = sendChannel.onclose = function(event) {
+        // handleSendChannelStatusChange
+        if (sendChannel) {
+            const state = sendChannel.readyState;
+            logTxt_accept("Send channel's status has changed to " + state);
+
+            if (state === "open") {
+                logTxt_accept("Sending a Howdy!");
+                sendChannel.send(`Howdy! ${uid} just connected.`);
+            }
+        }
+    };
+    con.ondatachannel = function(event) {
+        const c = event.channel;
+        logTxt_accept(`The channel should be open now: ${c.readyState}`);
+        logTxt_accept(`Connection state should be connected: ${con.connectionState}`);
+        // Receiving a message.
+        c.onmessage = function(event) {
+            //TODO
+            logTxt_accept(`handling received message.`)
+            appendChatBox(`From ???: ${event.data}`);
+        };
+    };
 
     let candidatesPromise = new Promise(resolve => {
         let candidates = [];
@@ -290,6 +311,10 @@ function setup(logger) {
 
 
 })();
+
+
+
+
 
 
 
