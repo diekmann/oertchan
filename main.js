@@ -114,7 +114,7 @@ function setup(logger) {
 
                 if (state === "open") {
                     logger("Sending a Howdy!");
-                    sendChannel.send(`Howdy! ${uid} just connected.`);
+                    sendChannel.send(`Howdy! ${uid} just connected by providing an offer.`);
                 }
             }
         };
@@ -122,6 +122,10 @@ function setup(logger) {
             const c = event.channel;
             logger(`The channel should be open now: ${c.readyState}`);
             logger(`Connection state should be connected: ${con.connectionState}`);
+            if (c.label != "sendChannel") {
+                // sanity check. I expect this to be the channel created above.
+                console.log("unexpected channel was created: ", c);
+            }
             // Receiving a message.
             c.onmessage = function(event) {
                 //TODO
@@ -200,7 +204,7 @@ function setup(logger) {
 
             if (state === "open") {
                 logTxt_accept("Sending a Howdy!");
-                sendChannel.send(`Howdy! ${uid} just connected.`);
+                sendChannel.send(`Howdy! ${uid} just connected by accepting an offer.`);
             }
         }
     };
