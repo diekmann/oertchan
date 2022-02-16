@@ -181,10 +181,9 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
 
             logTxt_offer(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
 
-            con.setRemoteDescription(answer).catch(handleError);
-
+            con.setRemoteDescription(answer);
             for (let i = 0; i < candidates.length; ++i) {
-                con.addIceCandidate(candidates[i]).catch(handleError);
+                con.addIceCandidate(candidates[i]).catch((e) => logTxt_offer(`error adding ice candidate: ${e}`));
             }
         })
         .catch((e) => {
@@ -234,11 +233,9 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
             const v = JSON.parse(data.offer);
             const candidates = v.candidates;
             const offer = v.offer;
-            console.log(data)
             logTxt_accept(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
 
-            con.setRemoteDescription(offer).catch(handleError);
-
+            con.setRemoteDescription(offer);
             for (let i = 0; i < candidates.length; ++i) {
                 con.addIceCandidate(candidates[i])
                     .then(logTxt_accept("candidate from remote added."))
@@ -263,8 +260,6 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
         answer: answer,
     };
     logTxt_accept(`have the answer: ${theAnswer}`);
-    //console.log(theAnswer)
-    logTxt_accept("TODO send answer");
 
     fetch(url, {
             method: 'POST',
@@ -273,8 +268,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
             credentials: 'omit',
             headers: {
                 'Content-Type': 'application/json'
-            }, // not allowed by CORS without preflight.
-            // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
+            },
             body: JSON.stringify({
                 'uidRemote': uidRemote,
                 'answer': theAnswer,
