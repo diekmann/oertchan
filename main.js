@@ -72,6 +72,27 @@ function newRTCPeerConnection(logger) {
     return con
 };
 
+function icecandidatesPromise(con, logger) {
+    return new Promise(resolve => {
+        let candidates = [];
+        // Collect the ICE candidates.
+        con.onicecandidate = function(event) {
+            const c = event.candidate;
+            if (c) {
+                // Empty candidate signals end of candidates.
+                if (!c.candidate) {
+                    return
+                }
+                logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
+                candidates.push(c);
+            } else {
+                logger("All ICE candidates are collected.");
+                resolve(candidates);
+            }
+        };
+    });
+}
+
 function newDataChannel(con, chanName, logger, howdy, onMessage) {
     let chan = null; // RTCDataChannel to actually talk to peers.
     chan = con.createDataChannel(chanName);
@@ -102,50 +123,29 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
     return chan
 };
 
-function setup(logger) {
-    return new Promise(resolve => {
-        let con = newRTCPeerConnection(logger);
-        let theOffer = {
-            candidates: [],
-            offer: "",
-        };
+(async () => {
+    let con = newRTCPeerConnection(logTxt_offer);
 
-        // Collect the ICE candidates.
-        con.onicecandidate = function(event) {
-            const c = event.candidate;
-            if (c) {
-                // Empty candidate signals end of candidates.
-                if (!c.candidate) {
-                    return
-                }
-                logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
-                theOffer.candidates.push(c);
-            } else {
-                logger("All ICE candidates are collected");
-                resolve([con, theOffer]);
-            }
-        };
+    let candidatesPromise = icecandidatesPromise(con, logTxt_offer);
 
-        con.createOffer()
-            .then(offer => {
-                logger("have offer");
-                theOffer.offer = offer;
-                return con.setLocalDescription(offer);
-            });
+    newDataChannel(con, "sendChannel", logTxt_offer, `Howdy! ${uid} just connected by providing an offer.`, function(event) {
+        //TODO
+        logTxt_offer(`handling received message `)
+        appendChatBox(`From ???: ${event.data}`);
+    });
 
-        newDataChannel(con, "sendChannel",  logger, `Howdy! ${uid} just connected by providing an offer.`, function(event) {
-            //TODO
-            logger(`handling received message `)
-            appendChatBox(`From ???: ${event.data}`);
+    let offer = await con.createOffer()
+        .then(offer => {
+            logTxt_offer("have offer");
+            con.setLocalDescription(offer);
+            return offer;
         });
 
-
-    });
-};
-
-(async () => {
-    let [con, offer] = await setup(logTxt_offer);
     logTxt_offer(`my offer: ${offer}`);
+    let theOffer = {
+        candidates: await candidatesPromise,
+        offer: offer,
+    };
 
     const url = `${srv}/offer`;
 
@@ -161,7 +161,7 @@ function setup(logger) {
             // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
             body: JSON.stringify({
                 'uid': uid,
-                'offer': offer
+                'offer': theOffer
             })
         })
         .then(response => {
@@ -178,7 +178,6 @@ function setup(logger) {
             const v = JSON.parse(data.answer);
             const answer = v.answer;
             const candidates = v.candidates;
-            console.log(data)
 
             logTxt_offer(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
 
@@ -191,9 +190,6 @@ function setup(logger) {
         .catch((e) => {
             logTxt_offer(`posting offer error: ${e}`);
         });
-
-    
-
 })();
 
 
@@ -201,30 +197,13 @@ function setup(logger) {
     logTxt_accept(`trying to accept something`);
     let con = newRTCPeerConnection(logTxt_accept);
 
-    newDataChannel(con, "sendChannel",  logTxt_accept, `Howdy! ${uid} just connected by accepting an offer.`, function(event) {
+    newDataChannel(con, "sendChannel", logTxt_accept, `Howdy! ${uid} just connected by accepting an offer.`, function(event) {
         //TODO
         logTxt_accept(`handling received message `)
         appendChatBox(`From ???: ${event.data}`);
     });
 
-    let candidatesPromise = new Promise(resolve => {
-        let candidates = [];
-        // Collect the ICE candidates.
-        con.onicecandidate = function(event) {
-            const c = event.candidate;
-            if (c) {
-                // Empty candidate signals end of candidates.
-                if (!c.candidate) {
-                    return
-                }
-                logTxt_accept(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
-                candidates.push(c);
-            } else {
-                logTxt_accept("All ICE candidates are collected");
-                resolve(candidates);
-            }
-        };
-    });
+    let candidatesPromise = icecandidatesPromise(con, logTxt_accept);
 
     const url = `${srv}/accept?uid=${uid}`;
 
@@ -255,6 +234,7 @@ function setup(logger) {
             const v = JSON.parse(data.offer);
             const candidates = v.candidates;
             const offer = v.offer;
+            console.log(data)
             logTxt_accept(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
 
             con.setRemoteDescription(offer).catch(handleError);
@@ -272,7 +252,10 @@ function setup(logger) {
             con.setLocalDescription(answer);
             return answer;
         })
-        .catch((e) => logTxt_accept(`fetching accept error: ${e}`));
+        .catch((e) => {
+            logTxt_accept(`fetching accept error: ${e}`);
+            console.error(e);
+        });
 
 
     let theAnswer = {
@@ -299,8 +282,6 @@ function setup(logger) {
         })
         .then(response => logTxt_accept(`POSTing answer: ${response}, ok:${response.ok}, status:${response.statusText}`))
         .catch((e) => logTxt_accept(`POSTing accept error: ${e}`));
-
-
 })();
 
 
