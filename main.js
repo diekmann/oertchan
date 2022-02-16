@@ -70,7 +70,37 @@ function newRTCPeerConnection(logger) {
         logger("ICE connection state change: " + con.iceConnectionState);
     };
     return con
-}
+};
+
+function newDataChannel(con, chanName, logger, howdy, onMessage) {
+    let chan = null; // RTCDataChannel to actually talk to peers.
+    chan = con.createDataChannel(chanName);
+    chan.onopen = chan.onclose = function(event) {
+        // handleSendChannelStatusChange
+        if (chan) {
+            const state = chan.readyState;
+            logger("Send channel's status has changed to " + state);
+
+            if (state === "open") {
+                logger("Sending a Howdy!");
+                chan.send(howdy);
+            }
+        }
+    };
+    con.ondatachannel = function(event) {
+        const c = event.channel;
+        logger(`The channel should be open now: ${c.readyState}`);
+        logger(`Connection state should be connected: ${con.connectionState}`);
+        if (c.label != chanName) {
+            // sanity check. I expect this to be the channel created above.
+            console.log("unexpected channel was created: ", c);
+            // yeah, if multiple channels are created for a single `con`, this check will fail.
+        }
+        // Receiving a message.
+        c.onmessage = onMessage
+    };
+    return chan
+};
 
 function setup(logger) {
     return new Promise(resolve => {
@@ -103,36 +133,13 @@ function setup(logger) {
                 return con.setLocalDescription(offer);
             });
 
+        newDataChannel(con, "sendChannel",  logger, `Howdy! ${uid} just connected by providing an offer.`, function(event) {
+            //TODO
+            logger(`handling received message `)
+            appendChatBox(`From ???: ${event.data}`);
+        });
 
-        let sendChannel = null; // RTCDataChannel to actually talk to peers.
-        sendChannel = con.createDataChannel("sendChannel");
-        sendChannel.onopen = sendChannel.onclose = function(event) {
-            // handleSendChannelStatusChange
-            if (sendChannel) {
-                const state = sendChannel.readyState;
-                logger("Send channel's status has changed to " + state);
 
-                if (state === "open") {
-                    logger("Sending a Howdy!");
-                    sendChannel.send(`Howdy! ${uid} just connected by providing an offer.`);
-                }
-            }
-        };
-        con.ondatachannel = function(event) {
-            const c = event.channel;
-            logger(`The channel should be open now: ${c.readyState}`);
-            logger(`Connection state should be connected: ${con.connectionState}`);
-            if (c.label != "sendChannel") {
-                // sanity check. I expect this to be the channel created above.
-                console.log("unexpected channel was created: ", c);
-            }
-            // Receiving a message.
-            c.onmessage = function(event) {
-                //TODO
-                logger(`handling received message `)
-                appendChatBox(`From ???: ${event.data}`);
-            };
-        };
     });
 };
 
@@ -185,7 +192,7 @@ function setup(logger) {
             logTxt_offer(`posting offer error: ${e}`);
         });
 
-
+    
 
 })();
 
@@ -194,31 +201,11 @@ function setup(logger) {
     logTxt_accept(`trying to accept something`);
     let con = newRTCPeerConnection(logTxt_accept);
 
-    let sendChannel = null; // RTCDataChannel to actually talk to peers.
-    sendChannel = con.createDataChannel("sendChannel");
-    sendChannel.onopen = sendChannel.onclose = function(event) {
-        // handleSendChannelStatusChange
-        if (sendChannel) {
-            const state = sendChannel.readyState;
-            logTxt_accept("Send channel's status has changed to " + state);
-
-            if (state === "open") {
-                logTxt_accept("Sending a Howdy!");
-                sendChannel.send(`Howdy! ${uid} just connected by accepting an offer.`);
-            }
-        }
-    };
-    con.ondatachannel = function(event) {
-        const c = event.channel;
-        logTxt_accept(`The channel should be open now: ${c.readyState}`);
-        logTxt_accept(`Connection state should be connected: ${con.connectionState}`);
-        // Receiving a message.
-        c.onmessage = function(event) {
-            //TODO
-            logTxt_accept(`handling received message.`)
-            appendChatBox(`From ???: ${event.data}`);
-        };
-    };
+    newDataChannel(con, "sendChannel",  logTxt_accept, `Howdy! ${uid} just connected by accepting an offer.`, function(event) {
+        //TODO
+        logTxt_accept(`handling received message `)
+        appendChatBox(`From ???: ${event.data}`);
+    });
 
     let candidatesPromise = new Promise(resolve => {
         let candidates = [];
