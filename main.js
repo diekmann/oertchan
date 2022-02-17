@@ -112,6 +112,10 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
         const c = event.channel;
         logger(`The channel should be open now: ${c.readyState}`);
         logger(`Connection state should be connected: ${con.connectionState}`);
+        if (c.readyState != "open" || con.connectionState != "connected") {
+            logger("UNEXPECTED DATA CHANNEL STATE");
+            return
+        }
         if (c.label != chanName) {
             // sanity check. I expect this to be the channel created above.
             console.log("unexpected channel was created: ", c);

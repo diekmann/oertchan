@@ -121,14 +121,11 @@ func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("now waiting for an answer for %q", body.Uid)
 	select {
 	case a := <-answer:
-		log.Printf("got answer: %q", a)
 		fmt.Fprintf(w, `{"uidRemote": "TODO", "answer":%q}`, a)
 	case <-ctx.Done():
-		log.Printf("ctx.Done (client closed connection)")
+		log.Printf("waiting on offer: ctx.Done (client closed connection)")
 		return
 	}
-
-	log.Printf("store size: %v", len(s.store.content)) // Data race here!
 }
 
 type accept struct {
