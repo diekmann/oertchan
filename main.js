@@ -337,7 +337,10 @@ sendMessageForm.addEventListener('submit', function(event) {
     const message = messageInputBox.value;
     for (let c of chans) {
         console.log("sending a message to", c);
-        c.send(message);
+        c.send(JSON.stringify({
+            setPeerName: uid,
+            message: message,
+        }));
     }
 
     appendChatBox(`${message}`);
