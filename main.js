@@ -49,6 +49,8 @@ function appendChatBox(txt) {
 }
 
 
+let chans = []; // connections to peers.
+
 
 //const srv = "http://cup1.lars-hupel.de:3000";
 const srv = "http://localhost:8080";
@@ -93,38 +95,33 @@ function icecandidatesPromise(con, logger) {
     });
 }
 
-function newDataChannel(con, chanName, logger, howdy, onMessage) {
-    // RTCDataChannel to actually talk to peers.
-    const chan = con.createDataChannel(chanName);
-    chan.onopen = chan.onclose = function(event) {
-        // handleSendChannelStatusChange
-        if (chan) {
-            const state = chan.readyState;
-            logger("Send channel's status has changed to " + state);
-
-            if (state === "open") {
-                logger("Sending a Howdy!");
-                chan.send(howdy);
-            }
-        }
-    };
+function dataChannelCallbacks(con, logger, howdy, onChannelReady) {
     con.ondatachannel = function(event) {
         const c = event.channel;
         logger(`The channel should be open now: ${c.readyState}`);
         logger(`Connection state should be connected: ${con.connectionState}`);
         if (c.readyState != "open" || con.connectionState != "connected") {
             logger("UNEXPECTED DATA CHANNEL STATE");
+            //TODO: I should probably wait for c.onopen
             return
         }
-        if (c.label != chanName) {
+        if (c.label != "sendChannel") {
             // sanity check. I expect this to be the channel created above.
             console.log("unexpected channel was created: ", c);
             // yeah, if multiple channels are created for a single `con`, this check will fail.
         }
-        // Receiving a message.
-        c.onmessage = onMessage
+        c.onclose = function(event) {
+            logger(`Send channel's status has changed to ${c.readyState}`);
+            // TODO: cleanup. Remove from list.
+        };
+        c.onopen = function(event) {
+            logger(`Send channel's status has changed to ${c.readyState}`);
+            logger("Sending a Howdy!");
+            c.send(howdy);
+            // Receiving a message via `c.onmessage = onMessageCallback`.
+            onChannelReady(c);
+        };
     };
-    return chan
 };
 
 (async () => {
@@ -132,11 +129,31 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
 
     let candidatesPromise = icecandidatesPromise(con, logTxt_offer);
 
-    newDataChannel(con, "sendChannel", logTxt_offer, `Howdy! ${uid} just connected by providing an offer.`, function(event) {
-        //TODO
-        logTxt_offer(`handling received message `)
-        appendChatBox(`From ???: ${event.data}`);
-    });
+    //dataChannelCallbacks(con, logTxt_offer, `Howdy! ${uid} just connected by providing you an offer.`, function(chan) {
+    //    chans.push(chan);
+    //    chan.onmessage = function(event) {
+    //        logTxt_offer(`handling received message `)
+    //        appendChatBox(`From ???: ${event.data}`);
+    //    };
+    //});
+    // RTCDataChannel to actually talk to peers. Only one peer should create one.
+    const chan = con.createDataChannel("sendChannel");
+    chan.onclose = function(event) {
+        logTxt_offer(`Send channel's status has changed to ${chan.readyState}`);
+        // TODO: cleanup. Remove from list.
+    };
+    chan.onopen = function(event) {
+        logTxt_offer(`Send channel's status has changed to ${chan.readyState}`);
+        logTxt_offer("Sending a Howdy!");
+        chan.send(`Howdy! ${uid} just connected by providing you an offer.`);
+        // Receiving a message via `c.onmessage = onMessageCallback`.
+        //onChannelReady(chan);
+        chans.push(chan);
+        chan.onmessage = function(event) {
+            logTxt_offer(`handling received message`);
+            appendChatBox(`From ???: ${event.data}`);
+        };
+    };
 
     const offer = await con.createOffer()
         .then(offer => {
@@ -154,7 +171,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
     const url = `${srv}/offer`;
 
     logTxt_offer(`POSTing my offer to ${url}`);
-    fetch(url, {
+    await fetch(url, {
             method: 'POST',
             mode: 'cors',
             cache: 'no-cache',
@@ -199,10 +216,12 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
     logTxt_accept(`trying to accept something`);
     const con = newRTCPeerConnection(logTxt_accept);
 
-    newDataChannel(con, "sendChannel", logTxt_accept, `Howdy! ${uid} just connected by accepting an offer.`, function(event) {
-        //TODO
-        logTxt_accept(`handling received message `)
-        appendChatBox(`From ???: ${event.data}`);
+    dataChannelCallbacks(con, logTxt_accept, `Howdy! ${uid} just connected by accepting your offer.`, function(chan) {
+        chans.push(chan);
+        chan.onmessage = function(event) {
+            logTxt_offer(`handling received message `)
+            appendChatBox(`From ???: ${event.data}`);
+        };
     });
 
     let candidatesPromise = icecandidatesPromise(con, logTxt_accept);
@@ -239,8 +258,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
             logTxt_accept(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
 
             con.setRemoteDescription(offer);
-            for (let i = 0; i < candidates.length; ++i) {
-                const c = candidates[i];
+            for (let c of candidates) {
                 con.addIceCandidate(c)
                     .then(logTxt_accept(`candidate from remote added`))
                     .catch((e) => logTxt_accept(`error adding ice candidate: ${e}`));
@@ -297,7 +315,11 @@ sendMessageForm.addEventListener('submit', function(event) {
     event.preventDefault();
 
     const message = messageInputBox.value;
-    sendChannel.send(message);
+    console.log(chans);
+    for (let c of chans) {
+        console.log("sending a message to", c);
+        c.send(message);
+    }
 
     appendChatBox(`${message}`);
 
