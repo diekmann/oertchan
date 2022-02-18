@@ -121,7 +121,7 @@ func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("now waiting for an answer for %q", body.Uid)
 	select {
 	case a := <-answer:
-		fmt.Fprintf(w, `{"uidRemote": "TODO", "answer":%q}`, a)
+		fmt.Fprintf(w, `{"answer":%q}`, a)
 	case <-ctx.Done():
 		log.Printf("waiting on offer: ctx.Done (client closed connection)")
 		return
@@ -139,19 +139,19 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uids, ok := r.URL.Query()["uid"]
-	if !ok {
-		http.Error(w, "need uid parameter", http.StatusBadRequest)
-		return
-	}
-	if len(uids) != 1 {
-		http.Error(w, "need exactly one uid parameter", http.StatusBadRequest)
-		return
-	}
-	uid := uids[0]
-
 	switch r.Method {
 	case "GET":
+		uids, ok := r.URL.Query()["uid"]
+		if !ok {
+			http.Error(w, "need uid parameter", http.StatusBadRequest)
+			return
+		}
+		if len(uids) != 1 {
+			http.Error(w, "need exactly one uid parameter", http.StatusBadRequest)
+			return
+		}
+		uid := uids[0]
+
 		offer, err := s.store.GetOther(uid)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("no offer available: %v", err), http.StatusBadRequest)
@@ -174,12 +174,12 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("invalid json request: %v", err), http.StatusBadRequest) // leaks data!!
 			return
 		}
+		log.Printf("relaying answer to %s", body.UidRemote)
 		// TODO: improve answer type
 		if err := s.store.Answer(body.UidRemote, string(answer)); err != nil {
 			http.Error(w, fmt.Sprintf("could not answer: %v", err), http.StatusBadRequest) // leaks data!!
 			return
 		}
-		log.Printf("answer from %s to %s relayed", uid, body.UidRemote)
 	}
 }
 

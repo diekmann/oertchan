@@ -178,12 +178,11 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
         })
         .then(data => {
             logTxt_offer(`got answer: JSON for ${url}: ${data}`);
-            const uidRemote = data.uidRemote
             const v = JSON.parse(data.answer);
             const answer = v.answer;
             const candidates = v.candidates;
 
-            logTxt_offer(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
+            logTxt_offer(`Answer: candidates: len(${JSON.stringify(candidates).length}) answer: len(${JSON.stringify(answer).length})`);
 
             con.setRemoteDescription(answer);
             for (let i = 0; i < candidates.length; ++i) {
@@ -208,13 +207,13 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
 
     let candidatesPromise = icecandidatesPromise(con, logTxt_accept);
 
-    const url = `${srv}/accept?uid=${uid}`;
+    const url = `${srv}/accept`;
 
     let uidRemote = "";
 
 
     logTxt_accept(`trying to fetch ${url}`);
-    let answer = await fetch(url, {
+    let answer = await fetch(`${url}?uid=${uid}`, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-cache',
