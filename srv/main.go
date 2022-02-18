@@ -117,7 +117,6 @@ func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// echo -e 'POST /offer HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 6\r\n\r\n"yolo"\r\n' | nc -v 127.0.0.1 8080
 	// echo -e 'POST /offer HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 28\r\n\r\n{"uid":"yolo","offer":"lol"}\r\n' | nc -v 127.0.0.1 8080
 	w.Header().Set("Content-Type", "application/json")
-	//fmt.Fprintf(w, `{"request": %q, "body":%s}`, r.URL.Path[1:], payload)
 	log.Printf("now waiting for an answer for %q", body.Uid)
 	select {
 	case a := <-answer:
@@ -154,7 +153,7 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		offer, err := s.store.GetOther(uid)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("no offer available: %v", err), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("no offer available", err), http.StatusNotFound)
 			return
 		}
 
@@ -177,7 +176,7 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Printf("relaying answer to %s", body.UidRemote)
 		// TODO: improve answer type
 		if err := s.store.Answer(body.UidRemote, string(answer)); err != nil {
-			http.Error(w, fmt.Sprintf("could not answer: %v", err), http.StatusBadRequest) // leaks data!!
+			http.Error(w, fmt.Sprintf("could not answer: %v", err), http.StatusNotFound) // leaks data!!
 			return
 		}
 	}

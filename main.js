@@ -96,32 +96,7 @@ function icecandidatesPromise(con, logger) {
 }
 
 function dataChannelCallbacks(con, logger, howdy, onChannelReady) {
-    con.ondatachannel = function(event) {
-        const c = event.channel;
-        logger(`The channel should be open now: ${c.readyState}`);
-        logger(`Connection state should be connected: ${con.connectionState}`);
-        if (c.readyState != "open" || con.connectionState != "connected") {
-            logger("UNEXPECTED DATA CHANNEL STATE");
-            //TODO: I should probably wait for c.onopen
-            return
-        }
-        if (c.label != "sendChannel") {
-            // sanity check. I expect this to be the channel created above.
-            console.log("unexpected channel was created: ", c);
-            // yeah, if multiple channels are created for a single `con`, this check will fail.
-        }
-        c.onclose = function(event) {
-            logger(`Send channel's status has changed to ${c.readyState}`);
-            // TODO: cleanup. Remove from list.
-        };
-        c.onopen = function(event) {
-            logger(`Send channel's status has changed to ${c.readyState}`);
-            logger("Sending a Howdy!");
-            c.send(howdy);
-            // Receiving a message via `c.onmessage = onMessageCallback`.
-            onChannelReady(c);
-        };
-    };
+
 };
 
 (async () => {
@@ -129,13 +104,6 @@ function dataChannelCallbacks(con, logger, howdy, onChannelReady) {
 
     let candidatesPromise = icecandidatesPromise(con, logTxt_offer);
 
-    //dataChannelCallbacks(con, logTxt_offer, `Howdy! ${uid} just connected by providing you an offer.`, function(chan) {
-    //    chans.push(chan);
-    //    chan.onmessage = function(event) {
-    //        logTxt_offer(`handling received message `)
-    //        appendChatBox(`From ???: ${event.data}`);
-    //    };
-    //});
     // RTCDataChannel to actually talk to peers. Only one peer should create one.
     const chan = con.createDataChannel("sendChannel");
     chan.onclose = function(event) {
@@ -146,8 +114,6 @@ function dataChannelCallbacks(con, logger, howdy, onChannelReady) {
         logTxt_offer(`Send channel's status has changed to ${chan.readyState}`);
         logTxt_offer("Sending a Howdy!");
         chan.send(`Howdy! ${uid} just connected by providing you an offer.`);
-        // Receiving a message via `c.onmessage = onMessageCallback`.
-        //onChannelReady(chan);
         chans.push(chan);
         chan.onmessage = function(event) {
             logTxt_offer(`handling received message`);
@@ -216,13 +182,35 @@ function dataChannelCallbacks(con, logger, howdy, onChannelReady) {
     logTxt_accept(`trying to accept something`);
     const con = newRTCPeerConnection(logTxt_accept);
 
-    dataChannelCallbacks(con, logTxt_accept, `Howdy! ${uid} just connected by accepting your offer.`, function(chan) {
-        chans.push(chan);
-        chan.onmessage = function(event) {
-            logTxt_offer(`handling received message `)
-            appendChatBox(`From ???: ${event.data}`);
+    con.ondatachannel = function(event) {
+        const c = event.channel;
+        logTxt_accept(`The channel should be open now: ${c.readyState}`);
+        logTxt_accept(`Connection state should be connected: ${con.connectionState}`);
+        if (c.readyState != "open" || con.connectionState != "connected") {
+            logTxt_accept("UNEXPECTED DATA CHANNEL STATE");
+            //TODO: I should probably wait for c.onopen
+            return
+        }
+        if (c.label != "sendChannel") {
+            // sanity check. I expect this to be the channel created above.
+            console.log("unexpected channel was created: ", c);
+            // yeah, if multiple channels are created for a single `con`, this check will fail.
+        }
+        c.onclose = function(event) {
+            logTxt_accept(`Send channel's status has changed to ${c.readyState}`);
+            // TODO: cleanup. Remove from list.
         };
-    });
+        c.onopen = function(event) {
+            logTxt_accept(`Send channel's status has changed to ${c.readyState}`);
+            logTxt_accept("Sending a Howdy!");
+            c.send(`Howdy! ${uid} just connected by accepting your offer.`);
+            chans.push(c);
+            c.onmessage = function(event) {
+                logTxt_accept(`handling received message `)
+                appendChatBox(`From ???: ${event.data}`);
+            };
+        };
+    };
 
     let candidatesPromise = icecandidatesPromise(con, logTxt_accept);
 
