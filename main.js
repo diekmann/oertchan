@@ -14,17 +14,6 @@ function logTxt_generic(txt) {
     logTo(logArea_generic, txt);
 };
 
-const logArea_offer = document.getElementById("logarea_offer");
-
-function logTxt_offer(txt) {
-    logTo(logArea_offer, txt);
-};
-
-const logArea_accept = document.getElementById("logarea_accept");
-
-function logTxt_accept(txt) {
-    logTo(logArea_accept, txt);
-};
 
 // User ID
 const uid = (() => {
@@ -95,11 +84,10 @@ function icecandidatesPromise(con, logger) {
     });
 }
 
-function dataChannelCallbacks(con, logger, howdy, onChannelReady) {
-
-};
-
 (async () => {
+    const logArea_offer = document.getElementById("logarea_offer");
+    const logTxt_offer = (txt) => logTo(logArea_offer, txt);
+
     const con = newRTCPeerConnection(logTxt_offer);
 
     let candidatesPromise = icecandidatesPromise(con, logTxt_offer);
@@ -179,6 +167,9 @@ function dataChannelCallbacks(con, logger, howdy, onChannelReady) {
 
 
 (async () => {
+    const logArea_accept = document.getElementById("logarea_accept");
+    const logTxt_accept = (txt) => logTo(logArea_accept, txt);
+
     logTxt_accept(`trying to accept something`);
     const con = newRTCPeerConnection(logTxt_accept);
 
@@ -303,7 +294,6 @@ sendMessageForm.addEventListener('submit', function(event) {
     event.preventDefault();
 
     const message = messageInputBox.value;
-    console.log(chans);
     for (let c of chans) {
         console.log("sending a message to", c);
         c.send(message);
