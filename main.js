@@ -55,7 +55,7 @@ const srv = "http://localhost:8080";
 
 function newRTCPeerConnection(logger) {
     // Without a stun server, we will only get .local candidates.
-    let con = new RTCPeerConnection({
+    const con = new RTCPeerConnection({
         'iceServers': [{
             'urls': 'stun:stun.l.google.com:19302'
         }]
@@ -74,7 +74,7 @@ function newRTCPeerConnection(logger) {
 
 function icecandidatesPromise(con, logger) {
     return new Promise(resolve => {
-        let candidates = [];
+        const candidates = [];
         // Collect the ICE candidates.
         con.onicecandidate = function(event) {
             const c = event.candidate;
@@ -94,8 +94,8 @@ function icecandidatesPromise(con, logger) {
 }
 
 function newDataChannel(con, chanName, logger, howdy, onMessage) {
-    let chan = null; // RTCDataChannel to actually talk to peers.
-    chan = con.createDataChannel(chanName);
+    // RTCDataChannel to actually talk to peers.
+    const chan = con.createDataChannel(chanName);
     chan.onopen = chan.onclose = function(event) {
         // handleSendChannelStatusChange
         if (chan) {
@@ -128,7 +128,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
 };
 
 (async () => {
-    let con = newRTCPeerConnection(logTxt_offer);
+    const con = newRTCPeerConnection(logTxt_offer);
 
     let candidatesPromise = icecandidatesPromise(con, logTxt_offer);
 
@@ -138,7 +138,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
         appendChatBox(`From ???: ${event.data}`);
     });
 
-    let offer = await con.createOffer()
+    const offer = await con.createOffer()
         .then(offer => {
             logTxt_offer("have offer");
             con.setLocalDescription(offer);
@@ -146,7 +146,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
         });
 
     logTxt_offer(`my offer: ${offer}`);
-    let theOffer = {
+    const theOffer = {
         candidates: await candidatesPromise,
         offer: offer,
     };
@@ -197,7 +197,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
 
 (async () => {
     logTxt_accept(`trying to accept something`);
-    let con = newRTCPeerConnection(logTxt_accept);
+    const con = newRTCPeerConnection(logTxt_accept);
 
     newDataChannel(con, "sendChannel", logTxt_accept, `Howdy! ${uid} just connected by accepting an offer.`, function(event) {
         //TODO
@@ -213,7 +213,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
 
 
     logTxt_accept(`trying to fetch ${url}`);
-    let answer = await fetch(`${url}?uid=${uid}`, {
+    const answer = await fetch(`${url}?uid=${uid}`, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-cache',
@@ -240,8 +240,9 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
 
             con.setRemoteDescription(offer);
             for (let i = 0; i < candidates.length; ++i) {
-                con.addIceCandidate(candidates[i])
-                    .then(logTxt_accept("candidate from remote added."))
+                const c = candidates[i];
+                con.addIceCandidate(c)
+                    .then(logTxt_accept(`candidate from remote added`))
                     .catch((e) => logTxt_accept(`error adding ice candidate: ${e}`));
             };
 
@@ -258,7 +259,7 @@ function newDataChannel(con, chanName, logger, howdy, onMessage) {
         });
 
 
-    let theAnswer = {
+    const theAnswer = {
         candidates: await candidatesPromise,
         answer: answer,
     };
