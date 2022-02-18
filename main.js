@@ -37,8 +37,36 @@ function appendChatBox(txt) {
     receiveBox.appendChild(el);
 }
 
+function peerName(chan) {
+    if ('peerName' in chan) {
+        return chan.peerName
+    }
+    return "???"
+}
+
 function incomingMessage(chan, event) {
-    appendChatBox(`From ???: ${event.data}`);
+    let d;
+    try {
+        d = JSON.parse(event.data);
+    } catch (e) {
+        appendChatBox(`From ${peerName(chan)}, unparsable: ${event.data}`);
+        return;
+    }
+
+    // authenticity? LOL! but we leak your IP anyways.
+    if ('setPeerName' in d) {
+        chan.peerName = d.setPeerName;
+        delete d.setPeerName;
+    }
+
+    if ('message' in d) {
+        appendChatBox(`From ${peerName(chan)}: ${d.message}`);
+        delete d.message;
+    }
+
+    if (Object.keys(d).length > 0) {
+        appendChatBox(`From ${peerName(chan)}, unknown contents: ${JSON.stringify(d)}`);
+    }
 }
 
 
@@ -105,7 +133,10 @@ async function offer() {
     chan.onopen = function(event) {
         logTxt_offer(`Send channel's status has changed to ${chan.readyState}`);
         logTxt_offer("Sending a Howdy!");
-        chan.send(`Howdy! ${uid} just connected by providing you an offer.`);
+        chan.send(JSON.stringify({
+            setPeerName: uid,
+            message: `Howdy! ${uid} just connected by providing you an offer.`
+        }));
         chans.push(chan);
         chan.onmessage = function(event) {
             logTxt_offer(`handling received message`);
@@ -198,7 +229,10 @@ async function accept() {
         chan.onopen = function(event) {
             logTxt_accept(`Send channel's status has changed to ${chan.readyState}`);
             logTxt_accept("Sending a Howdy!");
-            chan.send(`Howdy! ${uid} just connected by accepting your offer.`);
+            chan.send(JSON.stringify({
+                setPeerName: uid,
+                message: `Howdy! ${uid} just connected by accepting your offer.`
+            }));
             chans.push(chan);
             chan.onmessage = function(event) {
                 incomingMessage(chan, event);
