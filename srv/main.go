@@ -38,6 +38,28 @@ func (s *Store) Add(k string, v string) <-chan string {
 	return ch
 }
 
+func (s *Store) Keys() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	keys := make([]string, 0, len(s.content)) // return empty slize instead if nil for JSOn serialization.
+	for k, _ := range s.content {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (s *Store) Get(k string) (string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if v, ok := s.content[k]; !ok {
+		return "", false
+	} else {
+		return v.value, true
+	}
+}
+
 func (s *Store) Remove(k string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -46,30 +68,7 @@ func (s *Store) Remove(k string) {
 	//TODO: close chan?
 }
 
-type remoteOffer struct {
-	uid      string
-	offer    string
-	response chan<- string
-}
-
-func (s *Store) GetOther(self string) (*remoteOffer, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for k, v := range s.content {
-		if k == self {
-			continue
-		}
-		return &remoteOffer{
-			uid:      k,
-			offer:    v.value,
-			response: v.notify,
-		}, nil
-	}
-	return nil, fmt.Errorf("out of %d entries, none matches", len(s.content))
-}
-
-func (s *Store) Answer(remoteUID string, answer string) error {
+func (s *Store) RelayAnswer(remoteUID string, answer string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -88,6 +87,7 @@ type offer struct {
 	store *Store
 }
 
+// Accepts an offer and will reply with an answer. May be a very longrunning connection.
 func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
 	ctx := r.Context()
@@ -134,58 +134,93 @@ type accept struct {
 func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
 
-	if err := corsAllow(w, r, []string{"GET", "POST"}); err != nil {
+	if err := corsAllow(w, r, []string{"POST"}); err != nil {
 		return
 	}
 
-	switch r.Method {
-	case "GET":
-		uids, ok := r.URL.Query()["uid"]
-		if !ok {
-			http.Error(w, "need uid parameter", http.StatusBadRequest)
-			return
-		}
-		if len(uids) != 1 {
-			http.Error(w, "need exactly one uid parameter", http.StatusBadRequest)
-			return
-		}
-		uid := uids[0]
-
-		offer, err := s.store.GetOther(uid)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("no offer available", err), http.StatusNotFound)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"uid": %q, "offer":%q}`, offer.uid, offer.offer)
-	case "POST":
-		var body struct {
-			UidRemote string
-			Answer    interface{}
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, fmt.Sprintf("yo, invalid request: %v", err), http.StatusBadRequest) // leaks data!!
-			return
-		}
-		answer, err := json.Marshal(body.Answer)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("invalid json request: %v", err), http.StatusBadRequest) // leaks data!!
-			return
-		}
-		log.Printf("relaying answer to %s", body.UidRemote)
-		// TODO: improve answer type
-		if err := s.store.Answer(body.UidRemote, string(answer)); err != nil {
-			http.Error(w, fmt.Sprintf("could not answer: %v", err), http.StatusNotFound) // leaks data!!
-			return
-		}
+	var body struct {
+		UidRemote string
+		Answer    interface{}
 	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, fmt.Sprintf("yo, invalid request: %v", err), http.StatusBadRequest) // leaks data!!
+		return
+	}
+	answer, err := json.Marshal(body.Answer)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("invalid json request: %v", err), http.StatusBadRequest) // leaks data!!
+		return
+	}
+	log.Printf("relaying answer to %s", body.UidRemote)
+	// TODO: improve answer type
+	if err := s.store.RelayAnswer(body.UidRemote, string(answer)); err != nil {
+		http.Error(w, fmt.Sprintf("could not answer: %v", err), http.StatusNotFound) // leaks data!!
+		return
+	}
+}
+
+type listoffers struct {
+	store *Store
+}
+
+// Returns the UIDs of offers waiting for an anwser.
+func (s *listoffers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
+
+	if err := corsAllow(w, r, []string{"GET"}); err != nil {
+		return
+	}
+
+	reply, err := json.Marshal(struct {
+		UIDs []string `json:"uids"`
+	}{UIDs: s.store.Keys()})
+	if err != nil {
+		http.Error(w, "how does I JSON?", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `%s`, reply)
+}
+
+type getoffer struct {
+	store *Store
+}
+
+// Returns the offer for a UID.
+func (s *getoffer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
+
+	if err := corsAllow(w, r, []string{"GET"}); err != nil {
+		return
+	}
+
+	uids, ok := r.URL.Query()["uid"]
+	if !ok {
+		http.Error(w, "need uid parameter", http.StatusBadRequest)
+		return
+	}
+	if len(uids) != 1 {
+		http.Error(w, "need exactly one uid parameter", http.StatusBadRequest)
+		return
+	}
+	uid := uids[0]
+
+	offer, ok := s.store.Get(uid)
+	if !ok {
+		http.Error(w, "no offer found for this UID", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"offer":%q}`, offer)
 }
 
 func main() {
 	fmt.Println("Hello, world")
 	store := NewStore()
 	http.Handle("/offer", &offer{store})
+	http.Handle("/listoffers", &listoffers{store})
+	http.Handle("/getoffer", &getoffer{store})
 	http.Handle("/accept", &accept{store})
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

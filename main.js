@@ -242,13 +242,8 @@ async function accept() {
 
     let candidatesPromise = icecandidatesPromise(con, logTxt_accept);
 
-    const url = `${srv}/accept`;
-
-    let uidRemote = "";
-
-
-    logTxt_accept(`trying to fetch ${url}`);
-    const answer = await fetch(`${url}?uid=${uid}`, {
+    logTxt_accept(`trying to fetch available offers`);
+    const uidRemote = await fetch(`${srv}/listoffers`, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-cache',
@@ -258,17 +253,65 @@ async function accept() {
             },
         })
         .then(response => {
-            logTxt_accept(`GET ${url}: ${response}`);
             if (!response.ok) {
-                const e = `error talking to ${url}: ` + response.statusText;
+                const e = `error trying to list available offers: ` + response.statusText;
                 throw e;
             }
             return response.json();
         })
         .then(data => {
-            logTxt_accept(`JSON for ${url}: ${data}`);
-            uidRemote = data.uid
-            const v = JSON.parse(data.offer);
+            const uids = data.uids
+            logTxt_accept(`server has ${uids.length} offers.`);
+
+            // Don't connect to self and pick on remote peer at random.
+            const us = uids.filter(u => u != uid);
+            return us[Math.floor(Math.random() * us.length)]
+
+        })
+        .catch((e) => {
+            logTxt_accept(`fetching offers error: ${e}`);
+            console.error(e);
+        });
+
+    logTxt_accept(`want to connect to ${uidRemote}`);
+    if (!uidRemote) {
+        logTxt_accept(`seems like no offers are available, ...`);
+        return
+    }
+
+    const offer = await fetch(`${srv}/getoffer?uid=${uidRemote}`, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                const e = `error trying to get offer: ` + response.statusText;
+                throw e;
+            }
+            return response.json();
+        })
+        .then(data => {
+            const offer = data.offer
+            logTxt_accept(`retrieved offer of length ${offer.length}`);
+            return offer
+        })
+        .catch((e) => {
+            logTxt_accept(`fetching offer error: ${e}`);
+            console.error(e);
+        });
+
+    if (!offer) {
+        logTxt_accept(`seems like the offers disappeared while we tried to accept it, ...`);
+        return
+    }
+
+    const answer = await Promise.resolve(offer).then(JSON.parse)
+        .then(v => {
             const candidates = v.candidates;
             const offer = v.offer;
             logTxt_accept(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
@@ -288,18 +331,16 @@ async function accept() {
             return answer;
         })
         .catch((e) => {
-            logTxt_accept(`fetching accept error: ${e}`);
+            logTxt_accept(`processing answer failed: ${e}`);
             console.error(e);
         });
-
-
     const theAnswer = {
         candidates: await candidatesPromise,
         answer: answer,
     };
     logTxt_accept(`have the answer: ${theAnswer}`);
 
-    fetch(url, {
+    fetch(`${srv}/accept`, {
             method: 'POST',
             mode: 'cors',
             cache: 'no-cache',
