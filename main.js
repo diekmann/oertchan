@@ -263,8 +263,8 @@ async function accept() {
             const uids = data.uids
             logTxt_accept(`server has ${uids.length} offers.`);
 
-            // Don't connect to self and pick on remote peer at random.
-            const us = uids.filter(u => u != uid);
+            // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
+            const us = uids.filter(u => u != uid && !chans.map(peerName).includes(u));
             return us[Math.floor(Math.random() * us.length)]
 
         })
@@ -275,7 +275,7 @@ async function accept() {
 
     logTxt_accept(`want to connect to ${uidRemote}`);
     if (!uidRemote) {
-        logTxt_accept(`seems like no offers are available, ...`);
+        logTxt_accept(`seems like no new offers are available, ...`);
         return
     }
 
@@ -358,12 +358,19 @@ async function accept() {
 };
 
 
-// TODO: tell server to exclude peers I already have a connection with.
-//setInterval(offer, 5000);
-//setInterval(accept, 5000);
+const offerLoop = async () => {
+    await offer();
+    setTimeout(offerLoop, 5000)
+};
+offerLoop();
+const acceptLoop = async () => {
+    await accept();
+    setTimeout(acceptLoop, 5000)
+};
+acceptLoop();
 
-offer();
-accept();
+//offer();
+//accept();
 
 
 
