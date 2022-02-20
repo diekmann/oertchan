@@ -5,7 +5,7 @@
 
 function logTo(logArea, txt) {
     logArea.value += "\n" + txt;
-    logArea.scrollTop = logArea_generic.scrollHeight;
+    logArea.scrollTop = logArea.scrollHeight;
 };
 
 const logArea_generic = document.getElementById("logarea_generic");
@@ -279,7 +279,7 @@ async function accept() {
         return
     }
 
-    const offer = await fetch(`${srv}/getoffer?uid=${uidRemote}`, {
+    const offer = await fetch(`${srv}/describeoffer?uid=${uidRemote}`, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-cache',
@@ -369,8 +369,6 @@ const acceptLoop = async () => {
 };
 acceptLoop();
 
-//offer();
-//accept();
 
 
 

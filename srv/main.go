@@ -182,12 +182,12 @@ func (s *listoffers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `%s`, reply)
 }
 
-type getoffer struct {
+type describeoffer struct {
 	store *Store
 }
 
 // Returns the offer for a UID.
-func (s *getoffer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *describeoffer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
 
 	if err := corsAllow(w, r, []string{"GET"}); err != nil {
@@ -220,7 +220,7 @@ func main() {
 	store := NewStore()
 	http.Handle("/offer", &offer{store})
 	http.Handle("/listoffers", &listoffers{store})
-	http.Handle("/getoffer", &getoffer{store})
+	http.Handle("/describeoffer", &describeoffer{store})
 	http.Handle("/accept", &accept{store})
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
