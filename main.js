@@ -19,7 +19,8 @@ function logTxt_generic(txt) {
 const uid = (() => {
     let array = new Uint8Array(24);
     self.crypto.getRandomValues(array);
-    return array.reduce((acc, i) => acc + i.toString(16).padStart(2, 0));
+    const jsarr = Array.prototype.slice.call(array);
+    return jsarr.map(i => i.toString(16).padStart(2, '0')).join('');
 })();
 logTxt_generic(`My uid: ${uid}`)
 
