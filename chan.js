@@ -42,7 +42,6 @@ function icecandidatesPromise(con, logger) {
 }
 
 async function offer(logger, uid) {
-
     const con = newRTCPeerConnection(logger);
 
     let candidatesPromise = icecandidatesPromise(con, logger);

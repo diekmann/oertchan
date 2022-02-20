@@ -6,12 +6,24 @@
     <meta charset="utf-8">
     <style>
         textarea {
+            font-family: monospace, serif;
             font-size: 10px;
             width: 420px;
         }
+
+        #messages {
+            border: 3px groove aquamarine;
+            background-color: bisque;
+            width: 1269px;
+            height: 300px;
+            font-family: monospace, serif;
+            font-size: 10px;
+            overflow-y: scroll;
+        }
+    </style>
     </style>
     <script src="./adapter.js"></script>
-    <script src="./chan.js" defer></script>
+    <script src="./chan.js"></script>
     <script src="main.js" defer></script>
 </head>
 
@@ -38,9 +50,7 @@
             </form>
         </div>
         <br>
-        <div id="receivebox">
-            <p>Messages received:</p>
-        </div>
+        <div id="messages">Messages received will appear here.<br></div>
     </div>
 </body>
 

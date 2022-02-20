@@ -27,14 +27,18 @@ logTxt_generic(`My uid: ${uid}`)
 const sendButton = document.getElementById('sendButton');
 const sendMessageForm = document.getElementById('sendMessageForm');
 
-const messageInputBox = document.getElementById('inputmessage');
-const receiveBox = document.getElementById('receivebox');
+const receiveBox = document.getElementById('messages');
 
 function appendChatBox(txt) {
-    const el = document.createElement("p");
-    const txtNode = document.createTextNode(txt);
-    el.appendChild(txtNode);
-    receiveBox.appendChild(el);
+    let t = document.createElement("span");
+    t.appendChild(document.createTextNode(txt));
+    receiveBox.appendChild(t);
+    receiveBox.appendChild(document.createElement("br"));
+    t.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+        inline: "nearest"
+    });
 }
 
 function peerName(chan) {
@@ -108,6 +112,8 @@ acceptLoop();
 
 
 
+
+const messageInputBox = document.getElementById('inputmessage');
 
 // Handles clicks on the "Send" button by transmitting a message.
 sendMessageForm.addEventListener('submit', function(event) {
