@@ -83,18 +83,9 @@ func (s *Store) RelayAnswer(remoteUID string, answer string) error {
 	return nil
 }
 
-type offer struct {
-	store *Store
-}
-
 // Accepts an offer and will reply with an answer. May be a very longrunning connection.
-func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
+func offer(s *Store, w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	if err := corsAllow(w, r, []string{"POST"}); err != nil {
-		return
-	}
 
 	var body struct {
 		Uid   string
@@ -111,8 +102,8 @@ func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = string(offer)
 
-	answer := s.store.Add(body.Uid, string(offer))
-	defer s.store.Remove(body.Uid)
+	answer := s.Add(body.Uid, string(offer))
+	defer s.Remove(body.Uid)
 
 	// echo -e 'POST /offer HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 6\r\n\r\n"yolo"\r\n' | nc -v 127.0.0.1 8080
 	// echo -e 'POST /offer HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 28\r\n\r\n{"uid":"yolo","offer":"lol"}\r\n' | nc -v 127.0.0.1 8080
@@ -127,17 +118,7 @@ func (s *offer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type accept struct {
-	store *Store
-}
-
-func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
-
-	if err := corsAllow(w, r, []string{"POST"}); err != nil {
-		return
-	}
-
+func accept(s *Store, w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		UidRemote string
 		Answer    interface{}
@@ -153,27 +134,17 @@ func (s *accept) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("relaying answer to %s", body.UidRemote)
 	// TODO: improve answer type
-	if err := s.store.RelayAnswer(body.UidRemote, string(answer)); err != nil {
+	if err := s.RelayAnswer(body.UidRemote, string(answer)); err != nil {
 		http.Error(w, fmt.Sprintf("could not answer: %v", err), http.StatusNotFound) // leaks data!!
 		return
 	}
 }
 
-type listoffers struct {
-	store *Store
-}
-
 // Returns the UIDs of offers waiting for an anwser.
-func (s *listoffers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
-
-	if err := corsAllow(w, r, []string{"GET"}); err != nil {
-		return
-	}
-
+func listoffers(s *Store, w http.ResponseWriter, r *http.Request) {
 	reply, err := json.Marshal(struct {
 		UIDs []string `json:"uids"`
-	}{UIDs: s.store.Keys()})
+	}{UIDs: s.Keys()})
 	if err != nil {
 		http.Error(w, "how does I JSON?", http.StatusInternalServerError)
 		return
@@ -182,18 +153,8 @@ func (s *listoffers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `%s`, reply)
 }
 
-type describeoffer struct {
-	store *Store
-}
-
 // Returns the offer for a UID.
-func (s *describeoffer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
-
-	if err := corsAllow(w, r, []string{"GET"}); err != nil {
-		return
-	}
-
+func describeoffer(s *Store, w http.ResponseWriter, r *http.Request) {
 	uids, ok := r.URL.Query()["uid"]
 	if !ok {
 		http.Error(w, "need uid parameter", http.StatusBadRequest)
@@ -205,7 +166,7 @@ func (s *describeoffer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	uid := uids[0]
 
-	offer, ok := s.store.Get(uid)
+	offer, ok := s.Get(uid)
 	if !ok {
 		http.Error(w, "no offer found for this UID", http.StatusNotFound)
 		return
@@ -217,12 +178,27 @@ func (s *describeoffer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	fmt.Println("Hello, world")
-	store := NewStore()
-	http.Handle("/offer", &offer{store})
-	http.Handle("/listoffers", &listoffers{store})
-	http.Handle("/describeoffer", &describeoffer{store})
-	http.Handle("/accept", &accept{store})
+	s := NewStore()
+	http.Handle("/offer", &corsHTTPHandler{s, []string{"POST"}, offer})
+	http.Handle("/listoffers", &corsHTTPHandler{s, []string{"GET"}, listoffers})
+	http.Handle("/describeoffer", &corsHTTPHandler{s, []string{"GET"}, describeoffer})
+	http.Handle("/accept", &corsHTTPHandler{s, []string{"POST"}, accept})
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+type corsHTTPHandler struct {
+	store      *Store
+	wantMethod []string
+	serve      func(s *Store, w http.ResponseWriter, r *http.Request)
+}
+
+func (h *corsHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s request to %s", r.Proto, r.Method, r.URL)
+
+	if err := corsAllow(w, r, h.wantMethod); err != nil {
+		return
+	}
+	h.serve(h.store, w, r)
 }
 
 var stop = errors.New("stop")
