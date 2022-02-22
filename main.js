@@ -9,7 +9,6 @@ function logTo(logArea, txt) {
 };
 
 const logArea_generic = document.getElementById("logarea_generic");
-
 function logTxt_generic(txt) {
     logTo(logArea_generic, txt);
 };
@@ -28,13 +27,18 @@ logTxt_generic(`My uid: ${uid}`)
 const sendButton = document.getElementById('sendButton');
 const sendMessageForm = document.getElementById('sendMessageForm');
 
-const receiveBox = document.getElementById('messages');
+const chatBox = document.getElementById('chatBox');
 
-function appendChatBox(txt) {
-    let t = document.createElement("span");
-    t.appendChild(document.createTextNode(txt));
-    receiveBox.appendChild(t);
-    receiveBox.appendChild(document.createElement("br"));
+function appendChatBox(elem) {
+    let t;
+    if (elem instanceof HTMLElement) {
+        t = elem
+    } else {
+        t = document.createElement("span");
+        t.appendChild(document.createTextNode(elem));
+    }
+    chatBox.appendChild(t);
+    chatBox.appendChild(document.createElement("br"));
     t.scrollIntoView({
         behavior: "smooth",
         block: "end",
@@ -47,6 +51,37 @@ function peerName(chan) {
         return chan.peerName
     }
     return "???"
+}
+
+// In JavaScript, we don't write tests, right?
+function parseMarkdown(md) {
+    let t = document.createElement("span");
+
+    // Is Markdown even regular? ¯\_(ツ)_/¯
+    for (let part of md.split(/(?<link>\[.+?\]\(.+?\))/)) {
+        const found = part.match(/\[(?<linkName>.+?)\]\((?<linkHref>.+?)\)/);
+        if (found) {
+            let a = document.createElement('a');
+            a.innerText = found.groups.linkName;
+            a.href = found.groups.linkHref;
+            a.onclick = () => {
+                event.preventDefault();
+                console.log("link clicked");
+            }
+            t.appendChild(a);
+            continue;
+        }
+        t.appendChild(document.createTextNode(part));
+    }
+    return t;
+}
+console.log(parseMarkdown("HeLLo, [txt](href) yolo [txt2](href2)"));
+
+function formatMessage(from, message) {
+    let t = document.createElement("span");
+    t.appendChild(document.createTextNode(`From ${from}: `));
+    t.appendChild(message);
+    return t;
 }
 
 function incomingMessage(chan, event) {
@@ -65,12 +100,13 @@ function incomingMessage(chan, event) {
     }
 
     if ('message' in d) {
-        appendChatBox(`From ${peerName(chan)}: ${d.message}`);
+        //appendChatBox(`From ${peerName(chan)}: ${d.message}`);
+        appendChatBox(formatMessage(peerName(chan), parseMarkdown(d.message)));
         delete d.message;
     }
 
     if (Object.keys(d).length > 0) {
-        appendChatBox(`From ${peerName(chan)}, unknown contents: ${JSON.stringify(d)}`);
+        appendChatBox(formatMessage(peerName(chan), `unknown contents: ${JSON.stringify(d)}`));
     }
 }
 
@@ -132,7 +168,7 @@ sendMessageForm.addEventListener('submit', function(event) {
         }));
     }
 
-    appendChatBox(`${message}`);
+    appendChatBox(formatMessage(uid, parseMarkdown(message)));
 
     // Clear the input box and re-focus it, so that we're
     // ready for the next message.
