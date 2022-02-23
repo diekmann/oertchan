@@ -9,6 +9,7 @@ function logTo(logArea, txt) {
 };
 
 const logArea_generic = document.getElementById("logarea_generic");
+
 function logTxt_generic(txt) {
     logTo(logArea_generic, txt);
 };
@@ -28,6 +29,7 @@ const sendButton = document.getElementById('sendButton');
 const sendMessageForm = document.getElementById('sendMessageForm');
 
 const chatBox = document.getElementById('chatBox');
+const peerBox = document.getElementById('peerbox');
 
 function appendChatBox(elem) {
     let t;
@@ -54,19 +56,23 @@ function peerName(chan) {
 }
 
 // In JavaScript, we don't write tests, right?
-function parseMarkdown(md) {
+function parseMarkdown(peerName, md) {
     let t = document.createElement("span");
 
     // Is Markdown even regular? ¯\_(ツ)_/¯
     for (let part of md.split(/(?<link>\[.+?\]\(.+?\))/)) {
         const found = part.match(/\[(?<linkName>.+?)\]\((?<linkHref>.+?)\)/);
         if (found) {
+            const href = "ö" + (new URL(found.groups.linkHref, `rtchan://${peerName}/`)).href;
             let a = document.createElement('a');
             a.innerText = found.groups.linkName;
-            a.href = found.groups.linkHref;
-            a.onclick = () => {
+            a.href = href;
+            a.onclick = (event) => {
                 event.preventDefault();
-                console.log("link clicked");
+                console.log(`link clicked for ${href}`, event);
+                peerBox.style.visibility = 'visible';
+                peerbox.getElementsByClassName("title")[0].innerText = `Connection to ${href}`;
+                return false;
             }
             t.appendChild(a);
             continue;
@@ -75,7 +81,7 @@ function parseMarkdown(md) {
     }
     return t;
 }
-console.log(parseMarkdown("HeLLo, [txt](href) yolo [txt2](href2)"));
+console.log(parseMarkdown("peer-name", "HeLLo, [txt](href) yolo [txt2](href2)")); //TODO: wrote tests
 
 function formatMessage(from, message) {
     let t = document.createElement("span");
@@ -101,7 +107,8 @@ function incomingMessage(chan, event) {
 
     if ('message' in d) {
         //appendChatBox(`From ${peerName(chan)}: ${d.message}`);
-        appendChatBox(formatMessage(peerName(chan), parseMarkdown(d.message)));
+        const pn = peerName(chan);
+        appendChatBox(formatMessage(pn, parseMarkdown(pn, d.message)));
         delete d.message;
     }
 
@@ -122,6 +129,9 @@ const onChanReady = (chan) => {
         //logger(`handling received message`);
         incomingMessage(chan, event);
     };
+    chan.send(JSON.stringify({
+        message: `Check out [this cool link](/index)!!`
+    }));
 };
 
 const offerLoop = async () => {
@@ -168,7 +178,7 @@ sendMessageForm.addEventListener('submit', function(event) {
         }));
     }
 
-    appendChatBox(formatMessage(uid, parseMarkdown(message)));
+    appendChatBox(formatMessage(uid, parseMarkdown(uid, message)));
 
     // Clear the input box and re-focus it, so that we're
     // ready for the next message.
