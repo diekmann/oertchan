@@ -124,10 +124,22 @@ function incomingMessage(chan, event) {
 
 
     if ('request' in d) {
-        if (d.method != "GET") { // TODO? how do I check this?
+        if (d.request.method != "GET") {
             chan.send(JSON.stringify({
                 response: {
-                    content: `request: unkown method "${d.method}"`,
+                    content: `request: unkown method "${d.request.method}"`,
+                },
+            }));
+        } else if (!d.request.url) {
+            chan.send(JSON.stringify({
+                response: {
+                    content: `request: needs url`,
+                },
+            }));
+        } else {
+            chan.send(JSON.stringify({
+                response: {
+                    content: `request: received ${d.request.method} request for ${d.request.url}`,
                 },
             }));
         }
