@@ -71,7 +71,7 @@ function parseMarkdown(peerName, md) {
                 event.preventDefault();
                 console.log(`link clicked for ${href}`, event);
                 peerBox.style.visibility = 'visible';
-                peerbox.getElementsByClassName("title")[0].innerText = `Connection to ${href}`;
+                peerbox.getElementsByClassName("title")[0].getElementsByClassName("titletext")[0].innerText = `Connection to ${href}`;
                 return false;
             }
             t.appendChild(a);
