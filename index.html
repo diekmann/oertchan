@@ -101,18 +101,20 @@
         <script>
 "use strict";
 
-const peerbox = document.getElementById("peerbox");
-const peerboxtitlebar = peerbox.getElementsByClassName("title")[0];
+const peerBox = document.getElementById("peerbox");
+const peerBoxTitlebar = peerBox.getElementsByClassName("title")[0];
+const peerBoxContent = peerBox.getElementsByClassName("content")[0];
 
-const peerboxtitleclosebutton = peerbox.getElementsByClassName("title")[0].getElementsByClassName("close")[0];
-peerboxtitleclosebutton.onclick = () => {
+const peerBoxtitleClosebutton = peerBoxTitlebar.getElementsByClassName("close")[0];
+peerBoxtitleClosebutton.onclick = () => {
+    peerBoxContent.innerHTML = 'content placeholder (nothing received from remote so far)';
     peerBox.style.visibility = 'hidden';
 }
 
 // inspired by https://www.w3schools.com/howto/howto_js_draggable.asp
 
 let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-peerboxtitlebar.onmousedown = (e) => {
+peerBoxTitlebar.onmousedown = (e) => {
         e = e || window.event;
         e.preventDefault();
         // get the mouse cursor position at startup:
@@ -133,8 +135,8 @@ peerboxtitlebar.onmousedown = (e) => {
             pos3 = e.clientX;
             pos4 = e.clientY;
             // set the element's new position:
-            peerbox.style.top = (peerbox.offsetTop - pos2) + "px";
-            peerbox.style.left = (peerbox.offsetLeft - pos1) + "px";
+            peerBox.style.top = (peerbox.offsetTop - pos2) + "px";
+            peerBox.style.left = (peerbox.offsetLeft - pos1) + "px";
         };
     };
         </script>

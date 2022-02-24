@@ -29,7 +29,7 @@ const sendButton = document.getElementById('sendButton');
 const sendMessageForm = document.getElementById('sendMessageForm');
 
 const chatBox = document.getElementById('chatBox');
-const peerBox = document.getElementById('peerbox');
+//const peerBox = document.getElementById('peerbox'); // defined in index.html
 
 function appendChatBox(elem) {
     let t;
@@ -56,14 +56,14 @@ function peerName(chan) {
 }
 
 // In JavaScript, we don't write tests, right?
-function parseMarkdown(peerName, md) {
+function parseMarkdown(chan, md) {
     let t = document.createElement("span");
 
     // Is Markdown even regular? ¯\_(ツ)_/¯
     for (let part of md.split(/(?<link>\[.+?\]\(.+?\))/)) {
         const found = part.match(/\[(?<linkName>.+?)\]\((?<linkHref>.+?)\)/);
         if (found) {
-            const href = "ö" + (new URL(found.groups.linkHref, `rtchan://${peerName}/`)).href;
+            const href = "ö" + (new URL(found.groups.linkHref, `rtchan://${peerName(chan)}/`)).href;
             let a = document.createElement('a');
             a.innerText = found.groups.linkName;
             a.href = href;
@@ -72,6 +72,13 @@ function parseMarkdown(peerName, md) {
                 console.log(`link clicked for ${href}`, event);
                 peerBox.style.visibility = 'visible';
                 peerbox.getElementsByClassName("title")[0].getElementsByClassName("titletext")[0].innerText = `Connection to ${href}`;
+
+                chan.send(JSON.stringify({
+                    request: {
+                        method: "GET",
+                        url: found.groups.linkHref,
+                    },
+                }));
                 return false;
             }
             t.appendChild(a);
@@ -81,7 +88,9 @@ function parseMarkdown(peerName, md) {
     }
     return t;
 }
-console.log(parseMarkdown("peer-name", "HeLLo, [txt](href) yolo [txt2](href2)")); //TODO: wrote tests
+console.log(parseMarkdown({
+    peerName: "peer-name"
+}, "HeLLo, [txt](href) yolo [txt2](href2)")); //TODO: wrote tests
 
 function formatMessage(from, message) {
     let t = document.createElement("span");
@@ -105,21 +114,44 @@ function incomingMessage(chan, event) {
         delete d.setPeerName;
     }
 
+    const pn = peerName(chan);
+
     if ('message' in d) {
         //appendChatBox(`From ${peerName(chan)}: ${d.message}`);
-        const pn = peerName(chan);
-        appendChatBox(formatMessage(pn, parseMarkdown(pn, d.message)));
+        appendChatBox(formatMessage(pn, parseMarkdown(chan, d.message)));
         delete d.message;
     }
 
+
+    if ('request' in d) {
+        if (d.method != "GET") { // TODO? how do I check this?
+            chan.send(JSON.stringify({
+                response: {
+                    content: `request: unkown method "${d.method}"`,
+                },
+            }));
+        }
+        delete d.request;
+    }
+
+    if ('response' in d) {
+        // TODO: check that the peerBox is visible and currently owned by this chan.
+        peerBoxContent.appendChild(document.createTextNode(JSON.stringify(d.response)));
+        delete d.response;
+    }
+
     if (Object.keys(d).length > 0) {
-        appendChatBox(formatMessage(peerName(chan), `unknown contents: ${JSON.stringify(d)}`));
+        appendChatBox(formatMessage(pn, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
     }
 }
 
 
 let chans = []; // connections to peers.
 
+const loopbackChan = {
+    peerName: uid,
+    send: () => alert("please do not send to your loopback chan."),
+};
 
 
 
@@ -178,7 +210,7 @@ sendMessageForm.addEventListener('submit', function(event) {
         }));
     }
 
-    appendChatBox(formatMessage(uid, parseMarkdown(uid, message)));
+    appendChatBox(formatMessage(uid, parseMarkdown(loopbackChan, message)));
 
     // Clear the input box and re-focus it, so that we're
     // ready for the next message.
