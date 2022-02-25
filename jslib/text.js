@@ -1,3 +1,5 @@
+"use strict";
+
 // In JavaScript, we don't write tests, right?
 function parseMarkdown(buildLink, md) {
     let t = document.createElement("span");
@@ -19,3 +21,10 @@ console.log(parseMarkdown((linkName, href) => {
     a.href = href;
     return a;
 }, "HeLLo, [txt](href) yolo [txt2](href2)")); //TODO: wrote tests
+
+function formatMessage(from, message) {
+    let t = document.createElement("span");
+    t.appendChild(document.createTextNode(`From ${from}: `));
+    t.appendChild(message);
+    return t;
+}

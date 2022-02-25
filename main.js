@@ -7,7 +7,6 @@ function logTo(logArea, txt) {
     logArea.value += "\n" + txt;
     logArea.scrollTop = logArea.scrollHeight;
 };
-
 const logArea_generic = document.getElementById("logarea_generic");
 
 function logTxt_generic(txt) {
@@ -15,18 +14,10 @@ function logTxt_generic(txt) {
 };
 
 
-// User ID
-const uid = (() => {
-    let array = new Uint8Array(24);
-    self.crypto.getRandomValues(array);
-    const jsarr = Array.prototype.slice.call(array);
-    return jsarr.map(i => i.toString(16).padStart(2, '0')).join('');
-})();
+
 logTxt_generic(`My uid: ${uid}`)
 
 
-const sendButton = document.getElementById('sendButton');
-const sendMessageForm = document.getElementById('sendMessageForm');
 
 const chatBox = document.getElementById('chatBox');
 //const peerBox = document.getElementById('peerbox'); // defined in index.html
@@ -48,19 +39,6 @@ function appendChatBox(elem) {
     });
 }
 
-function peerName(chan) {
-    if ('peerName' in chan) {
-        return chan.peerName;
-    }
-    return "???";
-}
-
-function formatMessage(from, message) {
-    let t = document.createElement("span");
-    t.appendChild(document.createTextNode(`From ${from}: `));
-    t.appendChild(message);
-    return t;
-}
 
 function formatChatBoxLink(chan) {
     return (linkName, href) => {
@@ -145,17 +123,10 @@ function incomingMessage(chan, event) {
 }
 
 
-let chans = []; // connections to peers.
-
-const loopbackChan = {
-    peerName: uid,
-    send: () => alert("please do not send to your loopback chan."),
-};
 
 
 
 const onChanReady = (chan) => {
-    chans.push(chan);
     chan.onmessage = function(event) {
         //logger(`handling received message`);
         incomingMessage(chan, event);
@@ -165,32 +136,13 @@ const onChanReady = (chan) => {
     }));
 };
 
-const offerLoop = async () => {
-    const logArea_offer = document.getElementById("logarea_offer");
-    const logTxt_offer = (txt) => logTo(logArea_offer, txt);
-
-    await offer(logTxt_offer, uid, onChanReady);
-    setTimeout(offerLoop, 5000)
-};
-offerLoop();
-const acceptLoop = async () => {
-    const logArea_accept = document.getElementById("logarea_accept");
-    const logTxt_accept = (txt) => logTo(logArea_accept, txt);
-
-    // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
-    const selectRemotePeer = (uids) => {
-        const us = uids.filter(u => u != uid && !chans.map(peerName).includes(u));
-        return us[Math.floor(Math.random() * us.length)];
-    };
-
-    await accept(logTxt_accept, uid, selectRemotePeer, onChanReady);
-    setTimeout(acceptLoop, 5000)
-};
-acceptLoop();
+offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady);
+acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady);
 
 
 
 
+const sendMessageForm = document.getElementById('sendMessageForm');
 const messageInputBox = document.getElementById('inputmessage');
 
 // Handles clicks on the "Send" button by transmitting a message.
@@ -216,10 +168,3 @@ sendMessageForm.addEventListener('submit', function(event) {
     messageInputBox.value = "";
     messageInputBox.focus();
 }, false);
-
-
-function handleError(error) {
-    const s = "ERROR: " + error.toString()
-    console.log(error);
-    logTxt_generic(s);
-}

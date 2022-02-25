@@ -1,3 +1,7 @@
+"use strict";
+
+// Library to establish RTCDataChannels via WebRTC.
+
 //const srv = "http://cup1.lars-hupel.de:3000";
 const srv = "http://localhost:8080";
 
@@ -41,7 +45,8 @@ function icecandidatesPromise(con, logger) {
     });
 }
 
-async function offer(logger, uid) {
+async function offer(logger, uid, onChanReady) {
+    logger(`trying to offer a new connection`);
     const con = newRTCPeerConnection(logger);
 
     let candidatesPromise = icecandidatesPromise(con, logger);
