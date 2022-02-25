@@ -15,12 +15,6 @@ function parseMarkdown(buildLink, md) {
     }
     return t;
 }
-console.log(parseMarkdown((linkName, href) => {
-    let a = document.createElement('a');
-    a.innerText = linkName;
-    a.href = href;
-    return a;
-}, "HeLLo, [txt](href) yolo [txt2](href2)")); //TODO: wrote tests
 
 function formatMessage(from, message) {
     let t = document.createElement("span");
