@@ -17,7 +17,7 @@ function newRTCPeerConnection(logger) {
     con.oniceconnectionstatechange = function(event) {
         logger("ICE connection state change: " + con.iceConnectionState);
     };
-    return con
+    return con;
 };
 
 function icecandidatesPromise(con, logger) {
@@ -29,7 +29,7 @@ function icecandidatesPromise(con, logger) {
             if (c) {
                 // Empty candidate signals end of candidates.
                 if (!c.candidate) {
-                    return
+                    return;
                 }
                 logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
                 candidates.push(c);
@@ -130,7 +130,7 @@ async function accept(logger, uid, selectRemotePeer, onChanReady) {
         if (chan.readyState != "open" || con.connectionState != "connected") {
             logger("UNEXPECTED DATA CHANNEL STATE");
             //TODO: I should probably wait for c.onopen
-            return
+            return;
         }
         if (chan.label != "sendChannel") {
             // sanity check. I expect this to be the channel created above.
@@ -233,7 +233,7 @@ async function accept(logger, uid, selectRemotePeer, onChanReady) {
                     .catch((e) => logger(`error adding ice candidate: ${e}`));
             };
 
-            return con.createAnswer()
+            return con.createAnswer();
         })
         .then(answer => {
             logger("answer created");
