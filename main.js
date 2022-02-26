@@ -4,8 +4,11 @@
 
 
 function logTo(logArea, txt) {
+    const userHasScrolled = (logArea.scrollTop+logArea.offsetHeight < logArea.scrollHeight);
     logArea.value += "\n" + txt;
-    logArea.scrollTop = logArea.scrollHeight;
+    if (!userHasScrolled) {
+        logArea.scrollTop = logArea.scrollHeight;
+    }
 };
 const logArea_generic = document.getElementById("logarea_generic");
 
