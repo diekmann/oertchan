@@ -2,103 +2,113 @@
 
 // Establish and manage the RTCDataChannels. Core örtchan protocol.
 
-// User ID
-const uid = (() => {
-    let array = new Uint8Array(24);
-    self.crypto.getRandomValues(array);
-    const jsarr = Array.prototype.slice.call(array);
-    return jsarr.map(i => i.toString(16).padStart(2, '0')).join('');
-})();
+const chans = (() => {
+    // User ID
+    const uid = (() => {
+        let array = new Uint8Array(24);
+        self.crypto.getRandomValues(array);
+        const jsarr = Array.prototype.slice.call(array);
+        return jsarr.map(i => i.toString(16).padStart(2, '0')).join('');
+    })();
 
-function peerName(chan) {
-    if ('peerName' in chan) {
-        return chan.peerName;
+    function peerName(chan) {
+        if ('peerName' in chan) {
+            return chan.peerName;
+        }
+        return "???";
     }
-    return "???";
-}
 
-let chans = []; // connections to peers.
+    let chans = []; // connections to peers.
 
-const loopbackChan = {
-    peerName: uid,
-    send: () => alert("please do not send to your loopback chan."),
-};
+    const loopbackChan = {
+        peerName: uid,
+        send: () => alert("please do not send to your loopback chan."),
+    };
 
-function incomingMessage(logger, handler, chan) {
-    return (event) => {
-        logger(`handling received message from ${peerName(chan)}`);
-        let d;
-        try {
-            d = JSON.parse(event.data);
-        } catch (e) {
-            appendChatBox(`From ${peerName(chan)}, unparsable: ${event.data}`);
-            return;
-        }
-
-        // authenticity? LOL! but we leak your IP anyways.
-        if ('setPeerName' in d) {
-            chan.peerName = d.setPeerName;
-            delete d.setPeerName;
-        }
-
-        const pn = peerName(chan);
-
-        if ('message' in d) {
-            handler.message(pn, chan, d.message);
-            delete d.message;
-        }
-
-
-        if ('request' in d) {
-            if (d.request.method != "GET") {
-                chan.send(JSON.stringify({
-                    response: {
-                        content: `request: unkown method "${d.request.method}"`,
-                    },
-                }));
-            } else if (!d.request.url) {
-                chan.send(JSON.stringify({
-                    response: {
-                        content: `request: needs url`,
-                    },
-                }));
-            } else {
-                handler.request(pn, chan, d.request);
+    function incomingMessage(logger, handler, chan) {
+        return (event) => {
+            logger(`handling received message from ${peerName(chan)}`);
+            let d;
+            try {
+                d = JSON.parse(event.data);
+            } catch (e) {
+                appendChatBox(`From ${peerName(chan)}, unparsable: ${event.data}`);
+                return;
             }
-            delete d.request;
-        }
 
-        if ('response' in d) {
-            handler.response(pn, chan, d.response);
-            delete d.response;
-        }
+            // authenticity? LOL! but we leak your IP anyways.
+            if ('setPeerName' in d) {
+                chan.peerName = d.setPeerName;
+                delete d.setPeerName;
+            }
 
-        if (Object.keys(d).length > 0) {
-            handler.default(pn, chan, d);
-        }
-    };
-};
+            const pn = peerName(chan);
 
-const offerLoop = async (logger, onChanReady, incomingMessageHandler) => {
-    const registerChanAndReady = (chan) => {
-        chans.push(chan);
-        chan.onmessage = incomingMessage(logger, incomingMessageHandler, chan);
-        onChanReady(chan);
+            if ('message' in d) {
+                handler.message(pn, chan, d.message);
+                delete d.message;
+            }
+
+
+            if ('request' in d) {
+                if (d.request.method != "GET") {
+                    chan.send(JSON.stringify({
+                        response: {
+                            content: `request: unkown method "${d.request.method}"`,
+                        },
+                    }));
+                } else if (!d.request.url) {
+                    chan.send(JSON.stringify({
+                        response: {
+                            content: `request: needs url`,
+                        },
+                    }));
+                } else {
+                    handler.request(pn, chan, d.request);
+                }
+                delete d.request;
+            }
+
+            if ('response' in d) {
+                handler.response(pn, chan, d.response);
+                delete d.response;
+            }
+
+            if (Object.keys(d).length > 0) {
+                handler.default(pn, chan, d);
+            }
+        };
     };
-    await offer(logger, uid, registerChanAndReady);
-    setTimeout(offerLoop, 5000, logger, onChanReady, incomingMessageHandler)
-};
-const acceptLoop = async (logger, onChanReady, incomingMessageHandler) => {
-    const registerChanAndReady = (chan) => {
-        chans.push(chan);
-        chan.onmessage = incomingMessage(logger, incomingMessageHandler, chan);
-        onChanReady(chan);
+
+
+    const registerChanAndReady = (logger) => {
+        return (chan) => {
+            chans.push(chan);
+            chan.onmessage = incomingMessage(logger, incomingMessageHandler, chan);
+            onChanReady(chan);
+        };
     };
-    // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
-    const selectRemotePeer = (uids) => {
-        const us = uids.filter(u => u != uid && !chans.map(peerName).includes(u));
-        return us[Math.floor(Math.random() * us.length)];
+
+    const offerLoop = async (logger, onChanReady, incomingMessageHandler) => {
+        await chan.offer(logger, uid, registerChanAndReady(logger));
+        setTimeout(offerLoop, 5000, logger, onChanReady, incomingMessageHandler)
     };
-    await accept(logger, uid, selectRemotePeer, registerChanAndReady);
-    setTimeout(acceptLoop, 5000, logger, onChanReady, incomingMessageHandler)
-};
+    const acceptLoop = async (logger, onChanReady, incomingMessageHandler) => {
+        // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
+        const selectRemotePeer = (uids) => {
+            const us = uids.filter(u => u != uid && !chans.map(peerName).includes(u));
+            return us[Math.floor(Math.random() * us.length)];
+        };
+        await chan.accept(logger, uid, selectRemotePeer, registerChanAndReady(logger));
+        setTimeout(acceptLoop, 5000, logger, onChanReady, incomingMessageHandler)
+    };
+
+    return {
+        uid: uid,
+        peerName: peerName,
+        chans: chans,
+        loopbackChan: loopbackChan,
+        offerLoop: offerLoop,
+        acceptLoop: acceptLoop,
+    };
+})();

@@ -15,7 +15,7 @@ function logTxt_generic(txt) {
 
 
 
-logTxt_generic(`My uid: ${uid}`)
+logTxt_generic(`My uid: ${chans.uid}`)
 
 
 
@@ -42,7 +42,7 @@ function appendChatBox(elem) {
 
 function formatChatBoxLink(chan) {
     return (linkName, href) => {
-        const öhref = "ö" + (new URL(href, `rtchan://${peerName(chan)}/`)).href;
+        const öhref = "ö" + (new URL(href, `rtchan://${chans.peerName(chan)}/`)).href;
         let a = document.createElement('a');
         a.innerText = linkName;
         a.href = href;
@@ -96,8 +96,8 @@ const onChanReady = (chan) => {
     }));
 };
 
-offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
-acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
+chans.offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
+chans.acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
 
 
 
@@ -113,15 +113,15 @@ sendMessageForm.addEventListener('submit', function(event) {
     event.preventDefault();
 
     const message = messageInputBox.value;
-    for (let c of chans) {
+    for (let c of chans.chans) {
         console.log("sending a message to", c);
         c.send(JSON.stringify({
-            setPeerName: uid,
+            setPeerName: chans.uid,
             message: message,
         }));
     }
 
-    appendChatBox(formatMessage(uid, parseMarkdown(formatChatBoxLink(loopbackChan), message)));
+    appendChatBox(formatMessage(chans.uid, parseMarkdown(formatChatBoxLink(chans.loopbackChan), message)));
 
     // Clear the input box and re-focus it, so that we're
     // ready for the next message.
