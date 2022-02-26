@@ -128,38 +128,6 @@ const chan = (() => {
 
     async function accept(logger, uid, selectRemotePeer, onChanReady) {
         logger(`trying to accept something`);
-        const con = newRTCPeerConnection(logger);
-
-        con.ondatachannel = function(event) {
-            const chan = event.channel;
-            logger(`The channel should be open now: ${chan.readyState}`);
-            logger(`Connection state should be connected: ${con.connectionState}`);
-            if (chan.readyState != "open" || con.connectionState != "connected") {
-                logger("UNEXPECTED DATA CHANNEL STATE");
-                //TODO: I should probably wait for c.onopen
-                return;
-            }
-            if (chan.label != "sendChannel") {
-                // sanity check. I expect this to be the channel created above.
-                console.log("unexpected channel was created: ", chan);
-                // yeah, if multiple channels are created for a single `con`, this check will fail.
-            }
-            chan.onclose = function(event) {
-                logger(`Send channel's status has changed to ${chan.readyState}`);
-                // TODO: cleanup. Remove from list.
-            };
-            chan.onopen = function(event) {
-                logger(`Send channel's status has changed to ${chan.readyState}`);
-                logger("Sending a Howdy!");
-                chan.send(JSON.stringify({
-                    setPeerName: uid,
-                    message: `Howdy! ${uid} just connected by accepting your offer.`
-                }));
-                onChanReady(chan);
-            };
-        };
-
-        let candidatesPromise = icecandidatesPromise(con, logger);
 
         logger(`trying to fetch available offers`);
         const uidRemote = await fetch(`${srv}/listoffers`, {
@@ -226,6 +194,39 @@ const chan = (() => {
             logger(`seems like the offers disappeared while we tried to accept it, ...`);
             return
         }
+
+        // Only create connection if it looks like we can use it.
+        // Firefox gets unhappy if too many RTCPeerConnections are leaked.
+        const con = newRTCPeerConnection(logger);
+        con.ondatachannel = function(event) {
+            const chan = event.channel;
+            logger(`The channel should be open now: ${chan.readyState}`);
+            logger(`Connection state should be connected: ${con.connectionState}`);
+            if (chan.readyState != "open" || con.connectionState != "connected") {
+                logger("UNEXPECTED DATA CHANNEL STATE");
+                //TODO: I should probably wait for c.onopen
+                return;
+            }
+            if (chan.label != "sendChannel") {
+                // sanity check. I expect this to be the channel created above.
+                console.log("unexpected channel was created: ", chan);
+                // yeah, if multiple channels are created for a single `con`, this check will fail.
+            }
+            chan.onclose = function(event) {
+                logger(`Send channel's status has changed to ${chan.readyState}`);
+                // TODO: cleanup. Remove from list.
+            };
+            chan.onopen = function(event) {
+                logger(`Send channel's status has changed to ${chan.readyState}`);
+                logger("Sending a Howdy!");
+                chan.send(JSON.stringify({
+                    setPeerName: uid,
+                    message: `Howdy! ${uid} just connected by accepting your offer.`
+                }));
+                onChanReady(chan);
+            };
+        };
+        let candidatesPromise = icecandidatesPromise(con, logger);
 
         const answer = await Promise.resolve(offer).then(JSON.parse)
             .then(v => {
