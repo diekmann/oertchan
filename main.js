@@ -144,7 +144,10 @@ const peerBox = (() => {
     };
 
     return {
-        append: (e) => elemContent.appendChild(e),
+        append: (e) => {
+            elemContent.appendChild(e);
+            elemContent.appendChild(document.createElement("br"));
+        },
         setVisible: () => {
             elem.style.visibility = 'visible';
         },
@@ -155,37 +158,35 @@ const peerBox = (() => {
 })();
 
 
+// main
+(() => {
+    const incomingMessageHandler = {
+        message: (peerName, chan, message) => {
+            //chatBox.append(`From ${peerName(chan)}: ${d.message}`);
+            chatBox.append(formatMessage(peerName, parseMarkdown(chatBox.formatLink(chan), message)));
+        },
+        request: (peerName, chan, request) => {
+            chan.send(JSON.stringify({
+                response: {
+                    content: `request: received ${request.method} request for ${request.url}`,
+                },
+            }));
+        },
+        response: (peerName, chan, response) => {
+            // TODO: check that the peerBox is visible and currently owned by this chan.
+            peerBox.append(document.createTextNode(JSON.stringify(response)));
+        },
+        default: (peerName, chan, data) => {
+            chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
+        },
+    };
 
-const incomingMessageHandler = {
-    message: (peerName, chan, message) => {
-        //chatBox.append(`From ${peerName(chan)}: ${d.message}`);
-        chatBox.append(formatMessage(peerName, parseMarkdown(chatBox.formatLink(chan), message)));
-    },
-    request: (peerName, chan, request) => {
+    const onChanReady = (chan) => {
         chan.send(JSON.stringify({
-            response: {
-                content: `request: received ${request.method} request for ${request.url}`,
-            },
+            message: `Check out [this cool link](/index)!!`
         }));
-    },
-    response: (peerName, chan, response) => {
-        // TODO: check that the peerBox is visible and currently owned by this chan.
-        peerBox.append(document.createTextNode(JSON.stringify(response)));
-    },
-    default: (peerName, chan, data) => {
-        chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
-    },
-};
+    };
 
-
-
-
-
-const onChanReady = (chan) => {
-    chan.send(JSON.stringify({
-        message: `Check out [this cool link](/index)!!`
-    }));
-};
-
-chans.offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
-chans.acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
+    chans.offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
+    chans.acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
+})();

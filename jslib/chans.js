@@ -81,7 +81,7 @@ const chans = (() => {
     };
 
 
-    const registerChanAndReady = (logger) => {
+    const registerChanAndReady = (logger, onChanReady, incomingMessageHandler) => {
         return (chan) => {
             chans.push(chan);
             chan.onmessage = incomingMessage(logger, incomingMessageHandler, chan);
@@ -90,7 +90,7 @@ const chans = (() => {
     };
 
     const offerLoop = async (logger, onChanReady, incomingMessageHandler) => {
-        await chan.offer(logger, uid, registerChanAndReady(logger));
+        await chan.offer(logger, uid, registerChanAndReady(logger, onChanReady, incomingMessageHandler));
         setTimeout(offerLoop, 5000, logger, onChanReady, incomingMessageHandler)
     };
     const acceptLoop = async (logger, onChanReady, incomingMessageHandler) => {
@@ -99,7 +99,7 @@ const chans = (() => {
             const us = uids.filter(u => u != uid && !chans.map(peerName).includes(u));
             return us[Math.floor(Math.random() * us.length)];
         };
-        await chan.accept(logger, uid, selectRemotePeer, registerChanAndReady(logger));
+        await chan.accept(logger, uid, selectRemotePeer, registerChanAndReady(logger, onChanReady, incomingMessageHandler));
         setTimeout(acceptLoop, 5000, logger, onChanReady, incomingMessageHandler)
     };
 
