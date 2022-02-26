@@ -64,73 +64,34 @@ function formatChatBoxLink(chan) {
     };
 };
 
-function incomingMessage(chan, event) {
-    let d;
-    try {
-        d = JSON.parse(event.data);
-    } catch (e) {
-        appendChatBox(`From ${peerName(chan)}, unparsable: ${event.data}`);
-        return;
-    }
 
-    // authenticity? LOL! but we leak your IP anyways.
-    if ('setPeerName' in d) {
-        chan.peerName = d.setPeerName;
-        delete d.setPeerName;
-    }
-
-    const pn = peerName(chan);
-
-    if ('message' in d) {
+const incomingMessageHandler = {
+    message: (peerName, chan, message) => {
         //appendChatBox(`From ${peerName(chan)}: ${d.message}`);
-        appendChatBox(formatMessage(pn, parseMarkdown(formatChatBoxLink(chan), d.message)));
-        delete d.message;
-    }
-
-
-    if ('request' in d) {
-        if (d.request.method != "GET") {
-            chan.send(JSON.stringify({
-                response: {
-                    content: `request: unkown method "${d.request.method}"`,
-                },
-            }));
-        } else if (!d.request.url) {
-            chan.send(JSON.stringify({
-                response: {
-                    content: `request: needs url`,
-                },
-            }));
-        } else {
-            chan.send(JSON.stringify({
-                response: {
-                    content: `request: received ${d.request.method} request for ${d.request.url}`,
-                },
-            }));
-        }
-        delete d.request;
-    }
-
-    if ('response' in d) {
+        appendChatBox(formatMessage(peerName, parseMarkdown(formatChatBoxLink(chan), message)));
+    },
+    request: (peerName, chan, request) => {
+        chan.send(JSON.stringify({
+            response: {
+                content: `request: received ${request.method} request for ${request.url}`,
+            },
+        }));
+    },
+    response: (peerName, chan, response) => {
         // TODO: check that the peerBox is visible and currently owned by this chan.
-        peerBoxContent.appendChild(document.createTextNode(JSON.stringify(d.response)));
-        delete d.response;
-    }
-
-    if (Object.keys(d).length > 0) {
-        appendChatBox(formatMessage(pn, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
-    }
-}
+        peerBoxContent.appendChild(document.createTextNode(JSON.stringify(response)));
+    },
+    default: (peerName, chan, data) => {
+        appendChatBox(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
+    },
+};
 
 
 
 
 
 const onChanReady = (chan) => {
-    chan.onmessage = function(event) {
-        //logger(`handling received message`);
-        incomingMessage(chan, event);
-    };
+    chan.onmessage = incomingMessage(incomingMessageHandler, chan);
     chan.send(JSON.stringify({
         message: `Check out [this cool link](/index)!!`
     }));

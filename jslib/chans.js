@@ -24,6 +24,60 @@ const loopbackChan = {
     send: () => alert("please do not send to your loopback chan."),
 };
 
+function incomingMessage(handler, chan) {
+    //logger(`handling received message`);
+    return (event) => {
+        let d;
+        try {
+            d = JSON.parse(event.data);
+        } catch (e) {
+            appendChatBox(`From ${peerName(chan)}, unparsable: ${event.data}`);
+            return;
+        }
+
+        // authenticity? LOL! but we leak your IP anyways.
+        if ('setPeerName' in d) {
+            chan.peerName = d.setPeerName;
+            delete d.setPeerName;
+        }
+
+        const pn = peerName(chan);
+
+        if ('message' in d) {
+            handler.message(pn, chan, d.message);
+            delete d.message;
+        }
+
+
+        if ('request' in d) {
+            if (d.request.method != "GET") {
+                chan.send(JSON.stringify({
+                    response: {
+                        content: `request: unkown method "${d.request.method}"`,
+                    },
+                }));
+            } else if (!d.request.url) {
+                chan.send(JSON.stringify({
+                    response: {
+                        content: `request: needs url`,
+                    },
+                }));
+            } else {
+                handler.request(pn, chan, d.request);
+            }
+            delete d.request;
+        }
+
+        if ('response' in d) {
+            handler.response(pn, chan, d.response);
+            delete d.response;
+        }
+
+        if (Object.keys(d).length > 0) {
+            handler.default(pn, chan, d);
+        }
+    };
+};
 
 const offerLoop = async (logger, onChanReady) => {
     const registerChanAndReady = (chan) => {
