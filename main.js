@@ -1,8 +1,5 @@
 "use strict";
 
-// based on https://github.com/mdn/samples-server/blob/master/s/webrtc-simple-datachannel/main.js
-
-
 function logTo(logArea, txt) {
     const userHasScrolled = (logArea.scrollTop + logArea.offsetHeight < logArea.scrollHeight);
     logArea.value += "\n" + txt;

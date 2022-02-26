@@ -1,6 +1,7 @@
 "use strict";
 
 // Library to establish RTCDataChannels via WebRTC.
+// based on https://github.com/mdn/samples-server/blob/master/s/webrtc-simple-datachannel/main.js
 
 const chan = (() => {
     //const srv = "http://cup1.lars-hupel.de:3000";
