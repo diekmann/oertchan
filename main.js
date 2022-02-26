@@ -17,7 +17,6 @@ function logTxt_generic(txt) {
 };
 
 
-
 logTxt_generic(`My uid: ${chans.uid}`)
 
 
@@ -41,7 +40,6 @@ const chatBox = (() => {
             inline: "nearest"
         });
     }
-
 
     function formatLink(chan) {
         return (linkName, href) => {
