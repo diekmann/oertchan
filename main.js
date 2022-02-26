@@ -91,14 +91,13 @@ const incomingMessageHandler = {
 
 
 const onChanReady = (chan) => {
-    chan.onmessage = incomingMessage(incomingMessageHandler, chan);
     chan.send(JSON.stringify({
         message: `Check out [this cool link](/index)!!`
     }));
 };
 
-offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady);
-acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady);
+offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
+acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
 
 
 

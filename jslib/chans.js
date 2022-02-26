@@ -1,6 +1,6 @@
 "use strict";
 
-// Establish and manage the RTCDataChannels.
+// Establish and manage the RTCDataChannels. Core örtchan protocol.
 
 // User ID
 const uid = (() => {
@@ -24,9 +24,9 @@ const loopbackChan = {
     send: () => alert("please do not send to your loopback chan."),
 };
 
-function incomingMessage(handler, chan) {
-    //logger(`handling received message`);
+function incomingMessage(logger, handler, chan) {
     return (event) => {
+        logger(`handling received message from ${peerName(chan)}`);
         let d;
         try {
             d = JSON.parse(event.data);
@@ -79,17 +79,19 @@ function incomingMessage(handler, chan) {
     };
 };
 
-const offerLoop = async (logger, onChanReady) => {
+const offerLoop = async (logger, onChanReady, incomingMessageHandler) => {
     const registerChanAndReady = (chan) => {
         chans.push(chan);
+        chan.onmessage = incomingMessage(logger, incomingMessageHandler, chan);
         onChanReady(chan);
     };
     await offer(logger, uid, registerChanAndReady);
-    setTimeout(offerLoop, 5000, logger, onChanReady)
+    setTimeout(offerLoop, 5000, logger, onChanReady, incomingMessageHandler)
 };
-const acceptLoop = async (logger, onChanReady) => {
+const acceptLoop = async (logger, onChanReady, incomingMessageHandler) => {
     const registerChanAndReady = (chan) => {
         chans.push(chan);
+        chan.onmessage = incomingMessage(logger, incomingMessageHandler, chan);
         onChanReady(chan);
     };
     // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
@@ -98,5 +100,5 @@ const acceptLoop = async (logger, onChanReady) => {
         return us[Math.floor(Math.random() * us.length)];
     };
     await accept(logger, uid, selectRemotePeer, registerChanAndReady);
-    setTimeout(acceptLoop, 5000, logger, onChanReady)
+    setTimeout(acceptLoop, 5000, logger, onChanReady, incomingMessageHandler)
 };
