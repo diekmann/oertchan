@@ -47,8 +47,8 @@ const chatBox = (() => {
             a.onclick = (event) => {
                 event.preventDefault();
                 console.log(`link clicked for ${öhref}`, event);
-                peerBox.setVisible();
-                peerBox.setTitle(`Connection to ${öhref}`);
+                chan.peerBox.setVisible();
+                chan.peerBox.setTitle(`Connection to ${öhref}`);
 
                 chan.send(JSON.stringify({
                     request: {
@@ -95,6 +95,8 @@ const chatBox = (() => {
     };
 })();
 
+
+// A PeerBox handles peer2peer request responses.
 class PeerBox {
     chan;
     elem;
@@ -178,12 +180,6 @@ class PeerBox {
         this.elemTitleText.innerText = txt;
     }
 }
-// The peerBox handles peer2peer request responses.
-// TODO: use one peerbox per chan
-const peerBox = new PeerBox(chans.loopbackChan);
-
-
-
 
 
 // main
@@ -202,7 +198,7 @@ const peerBox = new PeerBox(chans.loopbackChan);
         },
         response: (peerName, chan, response) => {
             // TODO: check that the peerBox is visible and currently owned by this chan.
-            peerBox.append(document.createTextNode(JSON.stringify(response)));
+            chan.peerBox.append(document.createTextNode(JSON.stringify(response)));
         },
         default: (peerName, chan, data) => {
             chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
@@ -210,6 +206,9 @@ const peerBox = new PeerBox(chans.loopbackChan);
     };
 
     const onChanReady = (chan) => {
+        // The chan knows the peerBox and the PeerBox knowns the chan. Am I holding this correctly?
+        chan.peerBox = new PeerBox(chan);
+
         chan.send(JSON.stringify({
             message: `Check out [this cool link](/index)!!`
         }));
