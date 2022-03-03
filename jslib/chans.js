@@ -38,7 +38,12 @@ const chans = (() => {
 
             // authenticity? LOL! but we leak your IP anyways.
             if ('setPeerName' in d) {
-                chan.peerName = d.setPeerName;
+                if ('peerName' in chan && chan.peerName != d.setPeerName) {
+                    logger(`ERROR: trying to rename ${chan.peerName} to ${d.setPeerName}. But renaming is not allowed.`);
+                } else {
+                    logger(`peer ${peerName(chan)} is now know as ${d.setPeerName}.`);
+                    chan.peerName = d.setPeerName;
+                }
                 delete d.setPeerName;
             }
 
