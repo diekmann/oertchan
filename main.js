@@ -110,56 +110,60 @@ class PeerBox {
         // Shoule be the following HTML. TODO: is there a nicer way?
         // <div class="title"><span class="titletext" width="100%">title</span><span class="close" style="float: right;">X</span></div>
         // <div class="content">content</div>
-        const elem = document.createElement('div');
-        elem.id = 'peerbox'; // TODO: class, not id
-        const elemTitlebar = document.createElement('div');
-        elemTitlebar.className = 'title';
-        const elemTitleText = document.createElement('span');
-        elemTitleText.className = 'titletext';
-        elemTitleText.style.width = '100%';
-        elemTitleText.innerText = 'title';
-        const elemTitleClose = document.createElement('span');
-        elemTitleClose.className = 'close';
-        elemTitleClose.style.float = 'right';
-        elemTitleClose.innerText = 'X';
-        elemTitleClose.onclick = () => {
-            elemContent.innerHTML = 'content placeholder (nothing received from remote so far)';
-            elem.style.visibility = 'hidden';
-        }
+        const elem = Object.assign(document.createElement('div'), {
+            id: 'peerbox', // TODO: class, not id
+        });
+        const elemTitlebar = Object.assign(document.createElement('div'), {
+            className: 'title',
+            onmousedown: (e) => {
+                // making box movable inspired by https://www.w3schools.com/howto/howto_js_draggable.asp
+                e = e || window.event;
+                e.preventDefault();
+                // get the mouse cursor position at startup:
+                let pos3 = e.clientX;
+                let pos4 = e.clientY;
+                document.onmouseup = () => {
+                    // stop moving when mouse button is released:
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                };
+                // call a function whenever the cursor moves:
+                document.onmousemove = (e) => {
+                    e = e || window.event;
+                    e.preventDefault();
+                    // calculate the new cursor position:
+                    let pos1 = pos3 - e.clientX;
+                    let pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    // set the element's new position:
+                    elem.style.top = (elem.offsetTop - pos2) + "px";
+                    elem.style.left = (elem.offsetLeft - pos1) + "px";
+                };
+            },
+        });
+        const elemTitleText = Object.assign(document.createElement('span'), {
+            className: 'titletext',
+            style: "width: 100%",
+            innerText: 'title',
+        });
+        const elemTitleClose = Object.assign(document.createElement('span'), {
+            className: 'close',
+            style: "float: right;",
+            innerText: 'X',
+            onclick: () => {
+                elemContent.innerHTML = 'content placeholder (nothing received from remote so far)';
+                elem.style.visibility = 'hidden';
+            },
+        });
         elemTitlebar.appendChild(elemTitleText);
         elemTitlebar.appendChild(elemTitleClose);
         elem.appendChild(elemTitlebar);
-        const elemContent = document.createElement('div');
-        elemContent.className = 'content';
-        elemContent.innerText = 'content';
+        const elemContent = Object.assign(document.createElement('div'), {
+            className: 'content',
+            innerText: 'content'
+        });
         elem.appendChild(elemContent);
-
-        // making box movable inspired by https://www.w3schools.com/howto/howto_js_draggable.asp
-        elemTitlebar.onmousedown = (e) => {
-            e = e || window.event;
-            e.preventDefault();
-            // get the mouse cursor position at startup:
-            let pos3 = e.clientX;
-            let pos4 = e.clientY;
-            document.onmouseup = () => {
-                // stop moving when mouse button is released:
-                document.onmouseup = null;
-                document.onmousemove = null;
-            };
-            // call a function whenever the cursor moves:
-            document.onmousemove = (e) => {
-                e = e || window.event;
-                e.preventDefault();
-                // calculate the new cursor position:
-                let pos1 = pos3 - e.clientX;
-                let pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                // set the element's new position:
-                elem.style.top = (elem.offsetTop - pos2) + "px";
-                elem.style.left = (elem.offsetLeft - pos1) + "px";
-            };
-        };
 
         document.body.insertBefore(elem, document.getElementById('flexcontainer'));
 
