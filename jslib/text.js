@@ -25,6 +25,7 @@ function formatMessage(from, message) {
 
 function formatLink(chan) {
     return (linkName, href) => {
+        // According to rfc3986, the scheme of a URIs must start with a-z A-Z. So örtchan is not a valid scheme.
         const öhref = "ö" + (new URL(href, `rtchan://${chans.peerName(chan)}/`)).href;
         let a = document.createElement('a');
         a.innerText = linkName;
