@@ -38,30 +38,6 @@ const chatBox = (() => {
         });
     }
 
-    function formatLink(chan) {
-        return (linkName, href) => {
-            const öhref = "ö" + (new URL(href, `rtchan://${chans.peerName(chan)}/`)).href;
-            let a = document.createElement('a');
-            a.innerText = linkName;
-            a.href = href;
-            a.onclick = (event) => {
-                event.preventDefault();
-                console.log(`link clicked for ${öhref}`, event);
-                chan.peerBox.setVisible();
-                chan.peerBox.setTitle(`Connection to ${öhref}`);
-
-                chan.send(JSON.stringify({
-                    request: {
-                        method: "GET",
-                        url: href,
-                    },
-                }));
-                return false;
-            }
-            return a;
-        };
-    };
-
     const sendMessageForm = document.getElementById('sendMessageForm');
     const messageInputBox = document.getElementById('inputmessage');
 
@@ -152,7 +128,7 @@ class PeerBox {
             style: "float: right;",
             innerText: 'X',
             onclick: () => {
-                elemContent.innerHTML = 'content placeholder (nothing received from remote so far)';
+                elemContent.innerHTML = 'content placeholder (nothing received from remote so far)<br>';
                 elem.style.visibility = 'hidden';
             },
         });
@@ -161,7 +137,6 @@ class PeerBox {
         elem.appendChild(elemTitlebar);
         const elemContent = Object.assign(document.createElement('div'), {
             className: 'content',
-            innerText: 'content'
         });
         elem.appendChild(elemContent);
 
@@ -201,8 +176,14 @@ class PeerBox {
             }));
         },
         response: (peerName, chan, response) => {
-            // TODO: check that the peerBox is visible and currently owned by this chan.
-            chan.peerBox.append(document.createTextNode(JSON.stringify(response)));
+            // TODO: check that the peerBox is visible.
+            let content;
+            if ('content' in response) {
+                content = parseMarkdown(formatLink(chan), response.content);
+            } else {
+                content = document.createTextNode(`could not understand response: ${JSON.stringify(response)}`);
+            }
+            chan.peerBox.append(content);
         },
         default: (peerName, chan, data) => {
             chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));

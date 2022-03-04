@@ -22,3 +22,26 @@ function formatMessage(from, message) {
     t.appendChild(message);
     return t;
 }
+
+function formatLink(chan) {
+    return (linkName, href) => {
+        const öhref = "ö" + (new URL(href, `rtchan://${chans.peerName(chan)}/`)).href;
+        let a = document.createElement('a');
+        a.innerText = linkName;
+        a.href = öhref;
+        a.onclick = (event) => {
+            event.preventDefault();
+            chan.peerBox.setVisible();
+            chan.peerBox.setTitle(`Connection to ${öhref}`);
+
+            chan.send(JSON.stringify({
+                request: {
+                    method: "GET",
+                    url: href,
+                },
+            }));
+            return false;
+        }
+        return a;
+    };
+};

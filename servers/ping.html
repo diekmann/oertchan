@@ -33,7 +33,7 @@ const incomingMessageHandler = {
         if (request.url == "/ping") {
             chan.send(JSON.stringify({
                 response: {
-                    content: "Pong!",
+                    content: "Pong!\n\nAnother [ping](/ping)?",
                 },
             }));
             }
