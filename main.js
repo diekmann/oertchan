@@ -42,7 +42,7 @@ const chatBox = (() => {
     const messageInputBox = document.getElementById('inputmessage');
 
     // Handles clicks on the "Send" button by transmitting a message.
-    sendMessageForm.addEventListener('submit', function(event) {
+    sendMessageForm.addEventListener('submit', function (event) {
         console.log(`sendng message.`)
 
         // don't actually submit the HTML form, stay on the same page.
@@ -74,11 +74,6 @@ const chatBox = (() => {
 
 // A PeerBox handles peer2peer request responses.
 class PeerBox {
-    chan;
-    elem;
-    elemContent;
-    elemTitleText;
-
     constructor(chan) {
         this.chan = chan;
 

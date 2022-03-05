@@ -6,9 +6,8 @@ const chans = (() => {
     // User ID
     const uid = (() => {
         let array = new Uint8Array(24);
-        self.crypto.getRandomValues(array);
-        const jsarr = Array.prototype.slice.call(array);
-        return jsarr.map(i => i.toString(16).padStart(2, '0')).join('');
+        globalThis.crypto.getRandomValues(array);
+        return Array.from(array).map(i => i.toString(16).padStart(2, '0')).join('');
     })();
 
     function peerName(chan) {
@@ -26,7 +25,7 @@ const chans = (() => {
     };
 
     function incomingMessage(logger, handler, chan) {
-        return (event) => {
+        return event => {
             logger(`handling received message from ${peerName(chan)}`);
             let d;
             try {
