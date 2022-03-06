@@ -146,6 +146,11 @@ class PeerBox {
     append(e) {
         this.elemContent.appendChild(e);
         this.elemContent.appendChild(document.createElement("br"));
+        e.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+            inline: "nearest"
+        });
     }
     setVisible() {
         this.elem.style.visibility = 'visible';
