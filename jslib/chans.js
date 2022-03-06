@@ -42,6 +42,7 @@ const chans = (() => {
                 } else {
                     logger(`peer ${peerName(chan)} is now know as ${d.setPeerName}.`);
                     chan.peerName = d.setPeerName;
+                    handler.peerName(d.setPeerName);
                 }
                 delete d.setPeerName;
             }
