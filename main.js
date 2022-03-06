@@ -42,7 +42,7 @@ const chatBox = (() => {
     const messageInputBox = document.getElementById('inputmessage');
 
     // Handles clicks on the "Send" button by transmitting a message.
-    sendMessageForm.addEventListener('submit', function (event) {
+    sendMessageForm.addEventListener('submit', function(event) {
         console.log(`sendng message.`)
 
         // don't actually submit the HTML form, stay on the same page.

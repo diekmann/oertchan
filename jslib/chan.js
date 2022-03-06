@@ -52,11 +52,11 @@ const chan = (() => {
 
         // RTCDataChannel to actually talk to peers. Only one peer should create one.
         const chan = con.createDataChannel("sendChannel");
-        chan.onclose = function (event) {
+        chan.onclose = function(event) {
             logger(`Send channel's status has changed to ${chan.readyState}`);
             // TODO: cleanup. Remove from list.
         };
-        chan.onopen = function (event) {
+        chan.onopen = function(event) {
             logger(`Send channel's status has changed to ${chan.readyState}`);
             logger("Sending a Howdy!");
             chan.send(JSON.stringify({
@@ -83,19 +83,19 @@ const chan = (() => {
 
         logger(`POSTing my offer to ${url}`);
         return fetch(url, {
-            method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
-            headers: {
-                'Content-Type': 'application/json'
-            }, // not allowed by CORS without preflight.
-            // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
-            body: JSON.stringify({
-                'uid': uid,
-                'offer': theOffer
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json'
+                }, // not allowed by CORS without preflight.
+                // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
+                body: JSON.stringify({
+                    'uid': uid,
+                    'offer': theOffer
+                })
             })
-        })
             .then(response => {
                 logger(`POST ${url}: ${response}`);
                 if (!response.ok) {
@@ -128,14 +128,14 @@ const chan = (() => {
 
         logger(`trying to fetch available offers`);
         const uidRemote = await fetch(`${srv}/listoffers`, {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-        })
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
             .then(response => {
                 if (!response.ok) {
                     const e = `error trying to list available offers: ` + response.statusText;
@@ -162,14 +162,14 @@ const chan = (() => {
         }
 
         const offer = await fetch(`${srv}/describeoffer?uid=${uidRemote}`, {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-        })
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
             .then(response => {
                 if (!response.ok) {
                     const e = `error trying to get offer: ` + response.statusText;
@@ -195,7 +195,7 @@ const chan = (() => {
         // Only create connection if it looks like we can use it.
         // Firefox gets unhappy if too many RTCPeerConnections are leaked.
         const con = newRTCPeerConnection(logger);
-        con.ondatachannel = function (event) {
+        con.ondatachannel = function(event) {
             const chan = event.channel;
             logger(`The channel should be open now: ${chan.readyState}`);
             logger(`Connection state should be connected: ${con.connectionState}`);
@@ -209,11 +209,11 @@ const chan = (() => {
                 console.log("unexpected channel was created: ", chan);
                 // yeah, if multiple channels are created for a single `con`, this check will fail.
             }
-            chan.onclose = function (event) {
+            chan.onclose = function(event) {
                 logger(`Send channel's status has changed to ${chan.readyState}`);
                 // TODO: cleanup. Remove from list.
             };
-            chan.onopen = function (event) {
+            chan.onopen = function(event) {
                 logger(`Send channel's status has changed to ${chan.readyState}`);
                 logger("Sending a Howdy!");
                 chan.send(JSON.stringify({
@@ -256,18 +256,18 @@ const chan = (() => {
         logger(`have the answer: ${theAnswer}`);
 
         fetch(`${srv}/accept`, {
-            method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                'uidRemote': uidRemote,
-                'answer': theAnswer,
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'uidRemote': uidRemote,
+                    'answer': theAnswer,
+                })
             })
-        })
             .then(response => logger(`POSTing answer: ${response}, ok:${response.ok}, status:${response.statusText}`))
             .catch((e) => logger(`POSTing accept error: ${e}`));
     };
