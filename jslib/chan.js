@@ -5,7 +5,8 @@
 
 const chan = (() => {
     //const srv = "http://cup1.lars-hupel.de:3000";
-    const srv = "http://localhost:8080";
+    //const srv = "http://localhost:8080";
+    const srv = "http://oertchan.herokuapp.com";
 
     function newRTCPeerConnection(logger) {
         // Without a stun server, we will only get .local candidates.
