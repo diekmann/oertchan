@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>örtchan time server</title>
+    <meta charset="utf-8">
+    <script src="../jslib/adapter.js"></script>
+    <script src="../jslib/chan.js"></script>
+    <script src="../jslib/chans.js"></script>
+</head>
+
+<body>
+    <h1>örtchan time server</h1>
+    
+    
+    <div id="logger">Log messages will appear here<br></div>
+<script>
+"use strict";
+
+const logger = (txt) => {
+    const elem = document.getElementById("logger");
+    const t = document.createElement("span");
+    t.appendChild(document.createTextNode(txt));
+    elem.appendChild(t);
+    elem.appendChild(document.createElement("br"));
+};
+
+const incomingMessageHandler = {
+    peerName: (peerName) => undefined,
+    message: (peerName, chan, message) => {
+        logger(`got message from ${peerName}: ${message}`);
+    },
+    request: (peerName, chan, request) => {
+        if (request.url == "/time") {
+            setInterval(() => {
+                chan.send(JSON.stringify({
+                    response: {
+                        content: `The time is now ${Date.now()}`,
+                    },
+                }));
+            }, 1000);
+            }
+    },
+    response: (peerName, chan, response) => {
+        logger(`response from ${peerName}: ${response}`);
+    },
+    default: (peerName, chan, data) => {
+        logger(`unknown contents from ${peerName}: ${JSON.stringify(d)}`);
+    },
+};
+
+
+const onChanReady = (chan) => {
+    chan.send(JSON.stringify({
+        message: `Get the current time every second [here](/time)!!`
+    }));
+};
+
+chans.offerLoop(logger, onChanReady, incomingMessageHandler);
+chans.acceptLoop(logger, onChanReady, incomingMessageHandler);
+</script>
+</body>
+
+</html>
+
