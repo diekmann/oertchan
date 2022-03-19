@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"os"
 )
 
 type val struct {
@@ -177,13 +178,17 @@ func describeoffer(s *Store, w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Println("Hello, world")
+	port := os.Getenv("PORT") // Heroku
+	if port == "" {
+		port = "8080"
+	}
+	fmt.Printf("Hello, world, starting to serve on %s", port)
 	s := NewStore()
 	http.Handle("/offer", &corsHTTPHandler{s, []string{"POST"}, offer})
 	http.Handle("/listoffers", &corsHTTPHandler{s, []string{"GET"}, listoffers})
 	http.Handle("/describeoffer", &corsHTTPHandler{s, []string{"GET"}, describeoffer})
 	http.Handle("/accept", &corsHTTPHandler{s, []string{"POST"}, accept})
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 type corsHTTPHandler struct {
