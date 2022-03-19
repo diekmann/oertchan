@@ -51,10 +51,14 @@ const chatBox = (() => {
         const message = messageInputBox.value;
         for (let c of chans.chans) {
             console.log("sending a message to", c);
-            c.send(JSON.stringify({
-                setPeerName: chans.uid,
-                message: message,
-            }));
+            try {
+                c.send(JSON.stringify({
+                    setPeerName: chans.uid,
+                    message: message,
+                }));
+            } catch (error) {
+                console.log("sending failed:", error);
+            };
         }
 
         append(formatMessage(chans.uid, parseMarkdown(formatLink(chans.loopbackChan), message)));
@@ -164,7 +168,7 @@ function refreshPeerList() {
     const peerList = document.getElementById('peerList');
     while (peerList.firstChild) {
         peerList.removeChild(peerList.firstChild);
-      }
+    }
     for (let c of chans.chans) {
         peerList.appendChild(document.createTextNode(chans.peerName(c)));
         peerList.appendChild(document.createElement("br"));
