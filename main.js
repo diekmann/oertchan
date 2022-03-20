@@ -164,22 +164,26 @@ class PeerBox {
     }
 }
 
-function refreshPeerList() {
+const peerList = (() => {
     const peerList = document.getElementById('peerList');
-    while (peerList.firstChild) {
-        peerList.removeChild(peerList.firstChild);
-    }
-    for (let c of chans.chans) {
-        const li = document.createElement("li");
-        li.appendChild(document.createTextNode(chans.peerName(c)));
-        peerList.appendChild(li);
-    }
-}
+    return {
+        insert: (chan) => {
+            const li = document.createElement("li");
+            li.innerText = `new chan ${chans.peerName(chan)}`;
+            peerList.appendChild(li);
+            chan.peerListEntry = li;
+        },
+        refresh: (chan) => {
+            const li = chan.peerListEntry;
+            li.innerText = `${chans.peerName(chan)}`;
+        },
+    };
+})();
 
 // main
 (() => {
     const incomingMessageHandler = {
-        peerName: (peerName) => refreshPeerList(),
+        peerName: (peerName, chan) => peerList.refresh(chan),
 
         message: (peerName, chan, message) => {
             //chatBox.append(`From ${peerName(chan)}: ${d.message}`);
@@ -210,7 +214,9 @@ function refreshPeerList() {
     const onChanReady = (chan) => {
         // The chan knows the peerBox and the PeerBox knowns the chan. Am I holding this correctly?
         chan.peerBox = new PeerBox(chan);
-        refreshPeerList();
+
+        peerList.insert(chan);
+        peerList.refresh(chan);
 
         chan.send(JSON.stringify({
             message: `Check out [this cool link](/index)!!`
