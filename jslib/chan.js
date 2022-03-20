@@ -67,6 +67,7 @@ const chan = (() => {
     }
 
     async function offer(logger, uid, onChanReady) {
+        logger("-".repeat(72));
         logger(`trying to offer a new connection`);
         const con = newRTCPeerConnection(logger);
 
@@ -146,6 +147,7 @@ const chan = (() => {
 
 
     async function accept(logger, uid, selectRemotePeer, onChanReady) {
+        logger("-".repeat(72));
         logger(`trying to accept something`);
 
         logger(`trying to fetch available offers`);
@@ -167,7 +169,7 @@ const chan = (() => {
             })
             .then(data => {
                 const uids = data.uids
-                logger(`server has ${uids.length} offers.`);
+                logger(`server has ${uids.length} offers: ${uids}`);
 
                 // Don't connect to self, don't connect if we already have a connection to that peer.
                 return selectRemotePeer(uids);
