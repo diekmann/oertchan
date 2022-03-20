@@ -43,7 +43,7 @@ const chatBox = (() => {
 
     // Handles clicks on the "Send" button by transmitting a message.
     sendMessageForm.addEventListener('submit', function(event) {
-        console.log(`sendng message.`)
+        console.log(`sendng message.`);
 
         // don't actually submit the HTML form, stay on the same page.
         event.preventDefault();
@@ -88,7 +88,7 @@ class PeerBox {
         const elem = Object.assign(document.createElement('div'), {
             className: 'peerbox',
         });
-        const elemTitlebar = Object.assign(document.createElement('div'), {
+        const title = Object.assign(document.createElement('div'), {
             className: 'title',
             onmousedown: (e) => {
                 // making box movable inspired by https://www.w3schools.com/howto/howto_js_draggable.asp
@@ -117,34 +117,53 @@ class PeerBox {
                 };
             },
         });
-        const elemTitleText = Object.assign(document.createElement('span'), {
+        const titleText = Object.assign(document.createElement('span'), {
             className: 'titletext',
             style: "width: 100%",
             innerText: 'title',
         });
-        const elemTitleClose = Object.assign(document.createElement('span'), {
+        const titleClose = Object.assign(document.createElement('span'), {
             className: 'close',
             style: "float: right;",
             innerText: 'X',
             onclick: () => {
-                elemContent.innerHTML = 'content placeholder (nothing received from remote so far)<br>';
+                content.innerHTML = 'content placeholder (nothing received from remote so far)<br>';
                 elem.style.visibility = 'hidden';
             },
         });
-        elemTitlebar.appendChild(elemTitleText);
-        elemTitlebar.appendChild(elemTitleClose);
-        elem.appendChild(elemTitlebar);
-        const elemContent = Object.assign(document.createElement('div'), {
+        title.appendChild(titleText);
+        title.appendChild(titleClose);
+        elem.appendChild(title);
+
+        const content = Object.assign(document.createElement('div'), {
             className: 'content',
         });
-        elem.appendChild(elemContent);
+        elem.appendChild(content);
+
+        const footer = Object.assign(document.createElement('div'), {
+            className: 'footer',
+        });
+        const footerPost = Object.assign(document.createElement('form'), {
+            className: 'footerform',
+            innerHTML: `<label for="footerpost">
+            POST:<input type="text" name="footerpost" placeholder="Message text" inputmode="latin" size=40 maxlength=120 autocomplete="off">
+            </label>
+            <button id="sendButton" name="sendButton" type="submit">POST</button>`,
+            onsubmit: (event) => {
+                event.preventDefault();
+                console.log(`POST`);
+                console.log(footerPost.getElementsByTagName('input')[0].value);
+            },
+        })
+        footer.appendChild(footerPost);
+        elem.appendChild(footer);
 
         document.body.insertBefore(elem, document.getElementById('flexcontainer'));
 
 
         this.elem = elem;
-        this.elemContent = elemContent;
-        this.elemTitleText = elemTitleText;
+        this.elemContent = content;
+        this.elemTitleText = titleText;
     }
 
     append(e) {
