@@ -170,8 +170,9 @@ function refreshPeerList() {
         peerList.removeChild(peerList.firstChild);
     }
     for (let c of chans.chans) {
-        peerList.appendChild(document.createTextNode(chans.peerName(c)));
-        peerList.appendChild(document.createElement("br"));
+        const li = document.createElement("li");
+        li.appendChild(document.createTextNode(chans.peerName(c)));
+        peerList.appendChild(li);
     }
 }
 
