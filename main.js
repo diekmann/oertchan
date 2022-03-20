@@ -166,6 +166,13 @@ class PeerBox {
 
 const peerList = (() => {
     const peerList = document.getElementById('peerList');
+
+    const blink = (chan) => {
+        const li = chan.peerListEntry;
+        li.style = "";
+        void li.offsetWidth; // DOM reflow
+        li.style = "animation: blink-blue 1s;";
+    };
     return {
         insert: (chan) => {
             const li = document.createElement("li");
@@ -176,7 +183,9 @@ const peerList = (() => {
         refresh: (chan) => {
             const li = chan.peerListEntry;
             li.innerText = `${chans.peerName(chan)}`;
+            blink(chan);
         },
+        blink: blink,
     };
 })();
 
@@ -197,6 +206,7 @@ const peerList = (() => {
             }));
         },
         response: (peerName, chan, response) => {
+            peerList.blink(chan);
             // TODO: check that the peerBox is visible.
             let content;
             if ('content' in response) {
