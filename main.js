@@ -86,7 +86,7 @@ class PeerBox {
         // <div class="title"><span class="titletext" width="100%">title</span><span class="close" style="float: right;">X</span></div>
         // <div class="content">content</div>
         const elem = Object.assign(document.createElement('div'), {
-            id: 'peerbox', // TODO: class, not id
+            className: 'peerbox',
         });
         const elemTitlebar = Object.assign(document.createElement('div'), {
             className: 'title',
@@ -199,11 +199,23 @@ const peerList = (() => {
             chatBox.append(formatMessage(peerName, parseMarkdown(chatBox.formatLink(chan), message)));
         },
         request: (peerName, chan, request) => {
-            chan.send(JSON.stringify({
-                response: {
-                    content: `request: received ${request.method} request for ${request.url}`,
-                },
-            }));
+            switch (request.url){
+                case "/index":
+                    chan.send(JSON.stringify({
+                        response: {
+                            content: `Hello, my name is ${chans.uid}. Nice talking to you, ${chans.peerName(chan)}. [Send me a private message](/dm).`,
+                        },
+                    }));
+                    break;
+                case "/dm":
+                    break;
+                default:
+                    chan.send(JSON.stringify({
+                        response: {
+                            content: `request: received ${request.method} request for ${request.url}`,
+                        },
+                    }));
+            }
         },
         response: (peerName, chan, response) => {
             peerList.blink(chan);
