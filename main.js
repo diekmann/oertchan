@@ -40,14 +40,13 @@ const chatBox = (() => {
 
     function formatLink(chan) {
         return (linkName, href) => {
-            const öhref = öURL(chan, href);
             let a = document.createElement('a');
             a.innerText = linkName;
-            a.href = öhref;
+            a.href = öURL(chan, href);
             a.onclick = (event) => {
                 event.preventDefault();
                 chan.peerBox.setVisible();
-                chan.peerBox.setTitle(`Connection to ${öhref}`);
+                chan.peerBox.setTarget(href);
 
                 chan.send(JSON.stringify({
                     request: {
@@ -103,6 +102,7 @@ const chatBox = (() => {
 class PeerBox {
     constructor(chan) {
         this.chan = chan;
+        this.target = '/';
 
 
         // Shoule be the following HTML. TODO: is there a nicer way?
@@ -173,8 +173,8 @@ class PeerBox {
             <button id="sendButton" name="sendButton" type="submit">POST</button>`,
             onsubmit: (event) => {
                 event.preventDefault();
-                console.log(`POST`);
-                console.log(footerPost.getElementsByTagName('input')[0].value);
+                const value = footerPost.getElementsByTagName('input')[0].value;
+                console.log(`POST to `, this.target, ": ", value);
             },
         })
         footer.appendChild(footerPost);
@@ -200,8 +200,10 @@ class PeerBox {
     setVisible() {
         this.elem.style.visibility = 'visible';
     }
-    setTitle(txt) {
-        this.elemTitleText.innerText = txt;
+    setTarget(href) {
+        this.target = href;
+        const öhref = öURL(this.chan, href);
+        this.elemTitleText.innerText = `Connection to ${öhref}`;
     }
 }
 
