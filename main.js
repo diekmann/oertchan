@@ -38,6 +38,29 @@ const chatBox = (() => {
         });
     }
 
+    function formatLink(chan) {
+        return (linkName, href) => {
+            const öhref = öURL(chan, href);
+            let a = document.createElement('a');
+            a.innerText = linkName;
+            a.href = öhref;
+            a.onclick = (event) => {
+                event.preventDefault();
+                chan.peerBox.setVisible();
+                chan.peerBox.setTitle(`Connection to ${öhref}`);
+
+                chan.send(JSON.stringify({
+                    request: {
+                        method: "GET",
+                        url: href,
+                    },
+                }));
+                return false;
+            }
+            return a;
+        };
+    };
+
     const sendMessageForm = document.getElementById('sendMessageForm');
     const messageInputBox = document.getElementById('inputmessage');
 
@@ -240,7 +263,7 @@ const peerList = (() => {
             // TODO: check that the peerBox is visible.
             let content;
             if ('content' in response) {
-                content = parseMarkdown(formatLink(chan), response.content);
+                content = parseMarkdown(chatBox.formatLink(chan), response.content);
             } else {
                 content = document.createTextNode(`could not understand response: ${JSON.stringify(response)}`);
             }
