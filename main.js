@@ -175,6 +175,13 @@ class PeerBox {
                 event.preventDefault();
                 const value = footerPost.getElementsByTagName('input')[0].value;
                 console.log(`POST to `, this.target, ": ", value);
+                this.chan.send(JSON.stringify({
+                    request: {
+                        method: "POST",
+                        url: this.target,
+                        content: value,
+                    },
+                }));
             },
         })
         footer.appendChild(footerPost);
@@ -238,11 +245,10 @@ const peerList = (() => {
         peerName: (peerName, chan) => peerList.refresh(chan),
 
         message: (peerName, chan, message) => {
-            //chatBox.append(`From ${peerName(chan)}: ${d.message}`);
             chatBox.append(formatMessage(peerName, parseMarkdown(chatBox.formatLink(chan), message)));
         },
         request: (peerName, chan, request) => {
-            switch (request.url){
+            switch (request.url) {
                 case "/index":
                     chan.send(JSON.stringify({
                         response: {
@@ -251,6 +257,27 @@ const peerList = (() => {
                     }));
                     break;
                 case "/dm":
+                    switch (request.method) {
+                        case "GET":
+                            // Echo back
+                            chan.send(JSON.stringify({
+                                response: {
+                                    content: `Send me a private message.`,
+                                    //TODO: enable POST box.
+                                },
+                            }));
+                            break;
+                        case "POST":
+                            // Echo back
+                            chan.send(JSON.stringify({
+                                response: {
+                                    content: `${chans.peerName(chan)}: ${request.content}`,
+                                },
+                            }));
+                            // Display somewhere.
+                            chatBox.append(formatMessage(`Private message from ${chans.peerName(chan)}`, document.createTextNode(request.content)));
+                            break;
+                    }
                     break;
                 default:
                     chan.send(JSON.stringify({
