@@ -166,14 +166,14 @@ class PeerBox {
         const footer = Object.assign(document.createElement('div'), {
             className: 'footer',
         });
-        const footerPost = Object.assign(document.createElement('form'), {
+        const footerForm = Object.assign(document.createElement('form'), {
             className: 'footerform',
             innerHTML: `<label for="footerpost">POST:</label>
             <input type="text" name="footerpost" placeholder="Message text" inputmode="latin" size=40 maxlength=120 autocomplete="off">
             <button id="sendButton" name="sendButton" type="submit">POST</button>`,
             onsubmit: (event) => {
                 event.preventDefault();
-                const value = footerPost.getElementsByTagName('input')[0].value;
+                const value = footerForm.getElementsByTagName('input')[0].value;
                 console.log(`POST to `, this.target, ": ", value);
                 this.chan.send(JSON.stringify({
                     request: {
@@ -184,7 +184,7 @@ class PeerBox {
                 }));
             },
         })
-        footer.appendChild(footerPost);
+        footer.appendChild(footerForm);
         elem.appendChild(footer);
 
         document.body.insertBefore(elem, document.getElementById('flexcontainer'));
@@ -193,6 +193,7 @@ class PeerBox {
         this.elem = elem;
         this.elemContent = content;
         this.elemTitleText = titleText;
+        this.elemFooterForm = footerForm;
     }
 
     append(e) {
@@ -211,6 +212,12 @@ class PeerBox {
         this.target = href;
         const öhref = öURL(this.chan, href);
         this.elemTitleText.innerText = `Connection to ${öhref}`;
+    }
+    postFormHidden() {
+        this.elemFooterForm.style.visibility = 'hidden';
+    }
+    postFormVisible() {
+        this.elemFooterForm.style.visibility = 'visible';
     }
 }
 
@@ -263,7 +270,7 @@ const peerList = (() => {
                             chan.send(JSON.stringify({
                                 response: {
                                     content: `Send me a private message.`,
-                                    //TODO: enable POST box.
+                                    showPostForm: true,
                                 },
                             }));
                             break;
@@ -272,6 +279,7 @@ const peerList = (() => {
                             chan.send(JSON.stringify({
                                 response: {
                                     content: `${chans.peerName(chan)}: ${request.content}`,
+                                    showPostForm: true,
                                 },
                             }));
                             // Display somewhere.
@@ -297,6 +305,12 @@ const peerList = (() => {
                 content = document.createTextNode(`could not understand response: ${JSON.stringify(response)}`);
             }
             chan.peerBox.append(content);
+
+            if (response.showPostForm) {
+                chan.peerBox.postFormVisible();
+            } else {
+                chan.peerBox.postFormHidden();
+            }
         },
         default: (peerName, chan, data) => {
             chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
