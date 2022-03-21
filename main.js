@@ -145,9 +145,8 @@ class PeerBox {
         });
         const footerPost = Object.assign(document.createElement('form'), {
             className: 'footerform',
-            innerHTML: `<label for="footerpost">
-            POST:<input type="text" name="footerpost" placeholder="Message text" inputmode="latin" size=40 maxlength=120 autocomplete="off">
-            </label>
+            innerHTML: `<label for="footerpost">POST:</label>
+            <input type="text" name="footerpost" placeholder="Message text" inputmode="latin" size=40 maxlength=120 autocomplete="off">
             <button id="sendButton" name="sendButton" type="submit">POST</button>`,
             onsubmit: (event) => {
                 event.preventDefault();
