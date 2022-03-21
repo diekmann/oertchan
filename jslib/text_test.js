@@ -33,26 +33,22 @@ describe('text', function() {
         });
     });
 
-    describe('formatLink output as expected', function() {
+    describe('öURL output as expected', function() {
         const fakeChan = {
             peerName: 'yolo',
         };
 
         it('empty', function() {
-            assert.equal(formatLink(fakeChan)('', '').outerHTML, '<a href="örtchan://yolo/"></a>');
+            assert.equal(öURL(fakeChan, ''), 'örtchan://yolo/');
         });
-        it('empty buildLink', function() {
-            assert.equal(formatLink(fakeChan)('', '').outerHTML, buildLink('', 'örtchan://yolo/').outerHTML);
-        });
-
         it('simple link', function() {
-            assert.equal(formatLink(fakeChan)('linkName', 'target').outerHTML, buildLink('linkName', 'örtchan://yolo/target').outerHTML);
+            assert.equal(öURL(fakeChan, 'target'), 'örtchan://yolo/target');
         });
         it('simple link slashes', function() {
-            assert.equal(formatLink(fakeChan)('linkName', '/target').outerHTML, buildLink('linkName', 'örtchan://yolo/target').outerHTML);
+            assert.equal(öURL(fakeChan, '/target'), 'örtchan://yolo/target');
         });
         it('simple link more slashes', function() {
-            assert.equal(formatLink(fakeChan)('linkName', '/target/').outerHTML, buildLink('linkName', 'örtchan://yolo/target/').outerHTML);
+            assert.equal(öURL(fakeChan, '/target/'), 'örtchan://yolo/target/');
         });
     });
 });

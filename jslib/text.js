@@ -23,26 +23,10 @@ function formatMessage(from, message) {
     return t;
 }
 
-function formatLink(chan) {
-    return (linkName, href) => {
-        // According to rfc3986, the scheme of a URIs must start with a-z A-Z. So örtchan is not a valid scheme.
-        const öhref = "ö" + (new URL(href, `rtchan://${chans.peerName(chan)}/`)).href;
-        let a = document.createElement('a');
-        a.innerText = linkName;
-        a.href = öhref;
-        a.onclick = (event) => {
-            event.preventDefault();
-            chan.peerBox.setVisible();
-            chan.peerBox.setTitle(`Connection to ${öhref}`);
 
-            chan.send(JSON.stringify({
-                request: {
-                    method: "GET",
-                    url: href,
-                },
-            }));
-            return false;
-        }
-        return a;
-    };
-};
+// format a relative URL absolute wrt the chan. Pretty printing only.
+// browsers will likely treat this as local URL, since they don't recognize this as a scheme.
+function öURL(chan, href) {
+    // According to rfc3986, the scheme of a URIs must start with a-z A-Z. So örtchan is not a valid scheme.
+    return "ö" + (new URL(href, `rtchan://${chans.peerName(chan)}/`)).href;
+}
