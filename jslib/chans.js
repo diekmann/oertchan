@@ -56,7 +56,7 @@ const chans = (() => {
 
 
             if ('request' in d) {
-                if (d.request.method != "GET") {
+                if (d.request.method != "GET" && d.request.method != "POST") {
                     chan.send(JSON.stringify({
                         response: {
                             content: `request: unkown method "${d.request.method}"`,
