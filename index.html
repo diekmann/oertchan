@@ -41,20 +41,23 @@
             margin: 0;
             padding: 0;
             height: 300px;
+            --peerbox-title-height: 20px;
+            --peerbox-footer-height: 30px;
         }
 
         div.peerbox .title {
+            box-sizing: border-box;
             width: 100%;
-            height: 20px;
+            height: var(--peerbox-title-height);
             background-color: darkcyan;
             border-bottom: 1px solid black;
             padding: 3px;
-            box-sizing: border-box;
         }
 
         div.peerbox .content {
+            box-sizing: border-box;
             width: 100%;
-            height: calc(100% - 20px - 20px);
+            height: calc(100% - var(--peerbox-title-height) - var(--peerbox-footer-height));
             box-sizing: border-box;
             padding: 3px;
             background-color: cornflowerblue;
@@ -62,8 +65,9 @@
         }
 
         div.peerbox .footer {
+            box-sizing: border-box;
             width: 100%;
-            height: 20px;
+            height: var(--peerbox-footer-height);
             background-color: darkcyan;
             border-top: 1px solid black;
             padding: 0 3px 0 3px;
@@ -71,22 +75,21 @@
         }
 
         div.peerbox .footer form {
-            padding: 0;
+            box-sizing: border-box;
             height: 100%;
+            padding: 0;
         }
         div.peerbox .footer input {
+            box-sizing: border-box;
+            height: 100%;
             border: 0;
             background-color: cornflowerblue;
-            height: 18px;
-        }
-        div.peerbox .footer input {
-            border: 0;
-            background-color: cornflowerblue;
-            height: 18px;
         }
         div.peerbox .footer button {
+            box-sizing: border-box;
+            height: 100%;
+            padding:0;
             background-color: cornflowerblue;
-            height:18px;
         }
 
         @keyframes blink-blue {
@@ -116,10 +119,8 @@
         <br>
         <div>
             <form  id="sendMessageForm">
-            <label for="message">Enter a message:<br>
-                <input type="text" name="message" id="inputmessage" placeholder="Message text" inputmode="latin" size=40 maxlength=120 autocomplete="off">
-            </label>
-            <br>
+            <label for="message">Enter a message:</label>
+            <input type="text" name="message" id="inputmessage" placeholder="Message text" inputmode="latin" size=40 maxlength=120 autocomplete="off">
             <button id="sendButton" name="sendButton" type="submit">
                 Send
             </button>
