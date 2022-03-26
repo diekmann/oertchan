@@ -185,6 +185,14 @@ class PeerBox {
             },
         })
         footer.appendChild(footerForm);
+        const footerResize = Object.assign(document.createElement('a'), {
+            className: 'footerresize',
+            innerHTML: '<div style="position: absolute; right: 0; bottom: 0; padding-right: 3px;">&#8690;</div>',
+            onclick: (event) => {
+                event.preventDefault();
+            },
+        });
+        footer.appendChild(footerResize);
         elem.appendChild(footer);
 
         document.body.insertBefore(elem, document.getElementById('flexcontainer'));
