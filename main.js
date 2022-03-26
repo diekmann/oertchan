@@ -106,7 +106,7 @@ class PeerBox {
 
 
         // Shoule be the following HTML. TODO: is there a nicer way?
-        // <div class="title"><span class="titletext" width="100%">title</span><span class="close" style="float: right;">X</span></div>
+        // <div class="title"><span class="titletext" width="100%">title</span><span class="tileclose" style="float: right;">X</span></div>
         // <div class="content">content</div>
         const elem = Object.assign(document.createElement('div'), {
             className: 'peerbox',
@@ -145,13 +145,13 @@ class PeerBox {
             style: "width: 100%",
             innerText: 'title',
         });
-        const titleClose = Object.assign(document.createElement('span'), {
-            className: 'close',
-            style: "float: right;",
+        const titleClose = Object.assign(document.createElement('a'), {
+            className: 'tileclose',
             innerText: 'X',
-            onclick: () => {
+            onclick: (event) => {
+                event.preventDefault();
                 content.innerHTML = 'content placeholder (nothing received from remote so far)<br>';
-                elem.style.visibility = 'hidden';
+                this.setHidden()
             },
         });
         title.appendChild(titleText);
@@ -207,6 +207,11 @@ class PeerBox {
     }
     setVisible() {
         this.elem.style.visibility = 'visible';
+        this.elemFooterForm.style.visibility = ''; // inherit from elem.
+    }
+    setHidden() {
+        this.elem.style.visibility = 'hidden';
+        this.postFormHidden()
     }
     setTarget(href) {
         this.target = href;
