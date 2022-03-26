@@ -43,6 +43,8 @@
             height: 300px;
             --peerbox-title-height: 20px;
             --peerbox-footer-height: 30px;
+            resize: both;
+            overflow: auto;
         }
 
         div.peerbox .title {
@@ -76,11 +78,6 @@
             background-color: darkcyan;
             border-top: 1px solid black;
             padding: 0 0 0 3px;
-        }
-        div.peerbox .footerresize {
-            float: right;
-            cursor: nwse-resize;
-            height: var(--peerbox-footer-height);
         }
 
         div.peerbox .footer form {
