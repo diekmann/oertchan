@@ -185,27 +185,6 @@ class PeerBox {
             },
         })
         footer.appendChild(footerForm);
-        const footerResize = Object.assign(document.createElement('a'), {
-            className: 'footerresize',
-            innerHTML: '<div style="position: absolute; right: 0; bottom: 0; padding-right: 3px;">&#8690;</div>',
-            onmousedown: (event) => {
-                let startX = event.clientX;
-                let startY = event.clientY;
-                let startWidth = parseInt(document.defaultView.getComputedStyle(elem).width, 10);
-                let startHeight = parseInt(document.defaultView.getComputedStyle(elem).height, 10);
-                function doDrag(event) {
-                    elem.style.width = (startWidth + event.clientX - startX) + 'px';
-                    elem.style.height = (startHeight + event.clientY - startY) + 'px';
-                }
-                function stopDrag(event) {
-                    document.documentElement.removeEventListener('mousemove', doDrag, false);
-                    document.documentElement.removeEventListener('mouseup', stopDrag, false);
-                }
-                document.documentElement.addEventListener('mousemove', doDrag, false);
-                document.documentElement.addEventListener('mouseup', stopDrag, false);
-            },
-        });
-        footer.appendChild(footerResize);
         elem.appendChild(footer);
 
         document.body.insertBefore(elem, document.getElementById('flexcontainer'));
