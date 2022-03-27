@@ -31,6 +31,16 @@ describe('text', function() {
             assert.equal(parseMarkdown(buildLink, "HeLLo, [txt](href) yolo [txt2](href2)").innerHTML,
                 'HeLLo, <a href="href">txt</a> yolo <a href="href2">txt2</a>');
         });
+
+        it('not a string (number)', function() {
+            assert.equal(parseMarkdown(buildLink, 42).innerHTML,
+                '42');
+        });
+
+        it('not a string (object)', function() {
+            assert.equal(parseMarkdown(buildLink, {number: 42, inner: {string: "42", lol: 3.14}}).innerHTML,
+                '[object Object]');
+        });
     });
 
     describe('öURL output as expected', function() {

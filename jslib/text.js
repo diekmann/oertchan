@@ -2,6 +2,7 @@
 
 // In JavaScript, we don't write tests, right?
 function parseMarkdown(buildLink, md) {
+    md = md.toString();
     let t = document.createElement("span");
 
     // Is Markdown even regular? ¯\_(ツ)_/¯
