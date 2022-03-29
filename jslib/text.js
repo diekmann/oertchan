@@ -6,53 +6,88 @@ function parseMarkdown(buildLink, md) {
     let t = document.createElement("span");
 
     // Is Markdown even regular? ¯\_(ツ)_/¯
-    const tokens = /(?<link>\[.+?\]\(.+?\))|(?<paragraph>\n\n)|(?<bolditalic>\*\*\*[^*]+?\*\*\*)|(?<bold>\*\*[^*]+?\*\*)|(?<italic>\*[^*]+?\*)|(?<h>#{1,6} [^\n]*\n)/;
-    console.log(md.split(tokens));
-    for (let part of md.split(tokens)) {
+
+    class Token {
+        constructor(name, re, processor) {
+            this.name = name;
+            this.re = re;
+            this.processor = processor;
+        }
+    }
+
+    const tokens = [
+        new Token(
+            'link',
+            /\[(?<linkName>.+?)\]\((?<linkHref>.+?)\)/,
+            groups => buildLink(groups.linkName, groups.linkHref),
+        ),
+        new Token(
+            'paragraph',
+            /(?<paragraph>\n\n)/,
+            groups => document.createElement('br'),
+        ),
+        new Token(
+            'boldItalic',
+            /\*\*\*(?<boldItalictext>[^*]+?)\*\*\*/,
+            groups => {
+                const i = document.createElement('i');
+                i.innerText = groups.boldItalictext;
+                const b = document.createElement('b');
+                b.appendChild(i);
+                return b;
+            },
+        ),
+        new Token(
+            'bold',
+            /\*\*(?<boldText>[^*]+?)\*\*/,
+            groups => {
+                const b = document.createElement('b');
+                b.innerText = groups.boldText;
+                return b;
+            },
+        ),
+        new Token(
+            'italic',
+            /\*(?<italicText>[^*]+?)\*/,
+            groups => {
+                const i = document.createElement('i');
+                i.innerText = groups.italicText;
+                return i;
+            },
+        ),
+        new Token(
+            'heading',
+            /(?<h>#{1,6}) (?<headingText>[^\n]*)\n/,
+            groups => {
+                const h = document.createElement(`h${groups.h.length}`);
+                h.innerText = groups.headingText;
+                return h;
+            },
+        ),
+    ];
+
+    // Regexes making regexes. So cursed!
+    const tokenizer = new RegExp(tokens.map(t => `(?<${t.name}>${t.re.source.replace(/\(\?<[a-zA-Z0-9]+>/g, '(?:')})`).join('|'));
+    //console.log("tokenizer:", tokenizer);
+
+    for (let part of md.split(tokenizer)) {
         if (part === undefined) {
             // boah JavaScript ey!
             continue;
         }
-        const foundLink = part.match(/\[(?<linkName>.+?)\]\((?<linkHref>.+?)\)/);
-        if (foundLink) {
-            t.appendChild(buildLink(foundLink.groups.linkName, foundLink.groups.linkHref));
-            continue;
+        let partProcessed = false;
+        for (let tokProc of tokens) {
+            const found = part.match(tokProc.re);
+            if (found) {
+                const elem = tokProc.processor(found.groups);
+                t.appendChild(elem);
+                partProcessed = true;
+                break;
+            };
         }
-        if (part.match(/(?<paragraph>\n\n)/)) {
-            t.appendChild(document.createElement('br'));
-            continue;
+        if (!partProcessed) {
+            t.appendChild(document.createTextNode(part));
         }
-        const foundBoldItalic = part.match(/\*\*\*(?<text>[^*]+?)\*\*\*/);
-        if (foundBoldItalic) {
-            const i = document.createElement('i');
-            i.innerText = foundBoldItalic.groups.text;
-            const b = document.createElement('b');
-            b.appendChild(i);
-            t.appendChild(b);
-            continue;
-        }
-        const foundBold = part.match(/\*\*(?<text>[^*]+?)\*\*/);
-        if (foundBold) {
-            const b = document.createElement('b');
-            b.innerText = foundBold.groups.text;
-            t.appendChild(b);
-            continue;
-        }
-        const foundItalic = part.match(/\*(?<text>[^*]+?)\*/);
-        if (foundItalic) {
-            const i = document.createElement('i');
-            i.innerText = foundItalic.groups.text;
-            t.appendChild(i);
-            continue;
-        }
-        const foundH = part.match(/(?<h>#{1,6}) (?<text>[^\n]*)\n/);
-        if (foundH) {
-            const h = document.createElement(`h${foundH.groups.h.length}`);
-            h.innerText = foundH.groups.text;
-            t.appendChild(h);
-            continue;
-        }
-        t.appendChild(document.createTextNode(part));
     }
     return t;
 }
