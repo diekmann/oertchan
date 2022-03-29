@@ -6,7 +6,7 @@ function parseMarkdown(buildLink, md) {
     let t = document.createElement("span");
 
     // Is Markdown even regular? ¯\_(ツ)_/¯
-    const tokens = /(?<link>\[.+?\]\(.+?\))|(?<paragraph>\n\n)|(?<bolditalic>\*\*\*[^*]+?\*\*\*)|(?<bold>\*\*[^*]+?\*\*)|(?<italic>\*[^*]+?\*)/;
+    const tokens = /(?<link>\[.+?\]\(.+?\))|(?<paragraph>\n\n)|(?<bolditalic>\*\*\*[^*]+?\*\*\*)|(?<bold>\*\*[^*]+?\*\*)|(?<italic>\*[^*]+?\*)|(?<h>#{1,6} [^\n]*\n)/;
     console.log(md.split(tokens));
     for (let part of md.split(tokens)) {
         if (part === undefined) {
@@ -43,6 +43,13 @@ function parseMarkdown(buildLink, md) {
             const i = document.createElement('i');
             i.innerText = foundItalic.groups.text;
             t.appendChild(i);
+            continue;
+        }
+        const foundH = part.match(/(?<h>#{1,6}) (?<text>[^\n]*)\n/);
+        if (foundH) {
+            const h = document.createElement(`h${foundH.groups.h.length}`);
+            h.innerText = foundH.groups.text;
+            t.appendChild(h);
             continue;
         }
         t.appendChild(document.createTextNode(part));

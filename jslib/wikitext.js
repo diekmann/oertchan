@@ -7,5 +7,11 @@ function wikitextToMarkdownText(txt) {
     txt = txt.replace(/'''(?<txt>.+?)'''/gi, '***$<txt>***');
     txt = txt.replace(/''(?<txt>.+?)''/gi, '**$<txt>**');
     txt = txt.replace(/'(?<txt>.+?)'/gi, '*$<txt>*');
+    txt = txt.replace(/= (?<txt>[^\n]+?) =\n/gi, '# $<txt>\n\n');
+    txt = txt.replace(/== (?<txt>[^\n]+?) ==\n/gi, '## $<txt>\n\n');
+    txt = txt.replace(/=== (?<txt>[^\n]+?) ===\n/gi, '### $<txt>\n\n');
+    txt = txt.replace(/==== (?<txt>[^\n]+?) ====\n/gi, '#### $<txt>\n\n');
+    txt = txt.replace(/===== (?<txt>[^\n]+?) =====\n/gi, '##### $<txt>\n\n');
+    txt = txt.replace(/====== (?<txt>[^\n]+?) ======\n/gi, '###### $<txt>\n\n');
     return txt;
 }
