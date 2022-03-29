@@ -6,10 +6,43 @@ function parseMarkdown(buildLink, md) {
     let t = document.createElement("span");
 
     // Is Markdown even regular? ¯\_(ツ)_/¯
-    for (let part of md.split(/(?<link>\[.+?\]\(.+?\))/)) {
-        const found = part.match(/\[(?<linkName>.+?)\]\((?<linkHref>.+?)\)/);
-        if (found) {
-            t.appendChild(buildLink(found.groups.linkName, found.groups.linkHref));
+    const tokens = /(?<link>\[.+?\]\(.+?\))|(?<paragraph>\n\n)|(?<bolditalic>\*\*\*[^*]+?\*\*\*)|(?<bold>\*\*[^*]+?\*\*)|(?<italic>\*[^*]+?\*)/;
+    console.log(md.split(tokens));
+    for (let part of md.split(tokens)) {
+        if (part === undefined) {
+            // boah JavaScript ey!
+            continue;
+        }
+        const foundLink = part.match(/\[(?<linkName>.+?)\]\((?<linkHref>.+?)\)/);
+        if (foundLink) {
+            t.appendChild(buildLink(foundLink.groups.linkName, foundLink.groups.linkHref));
+            continue;
+        }
+        if (part.match(/(?<paragraph>\n\n)/)) {
+            t.appendChild(document.createElement('br'));
+            continue;
+        }
+        const foundBoldItalic = part.match(/\*\*\*(?<text>[^*]+?)\*\*\*/);
+        if (foundBoldItalic) {
+            const i = document.createElement('i');
+            i.innerText = foundBoldItalic.groups.text;
+            const b = document.createElement('b');
+            b.appendChild(i);
+            t.appendChild(b);
+            continue;
+        }
+        const foundBold = part.match(/\*\*(?<text>[^*]+?)\*\*/);
+        if (foundBold) {
+            const b = document.createElement('b');
+            b.innerText = foundBold.groups.text;
+            t.appendChild(b);
+            continue;
+        }
+        const foundItalic = part.match(/\*(?<text>[^*]+?)\*/);
+        if (foundItalic) {
+            const i = document.createElement('i');
+            i.innerText = foundItalic.groups.text;
+            t.appendChild(i);
             continue;
         }
         t.appendChild(document.createTextNode(part));

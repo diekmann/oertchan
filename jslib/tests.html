@@ -15,6 +15,7 @@
     <script class="mocha-init">
       mocha.setup('bdd');
       mocha.checkLeaks();
+      chai.config.truncateThreshold = 0;
       let assert = chai.assert;
     </script>
     <script src="text.js"></script>

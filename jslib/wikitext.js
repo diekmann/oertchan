@@ -4,5 +4,8 @@
 function wikitextToMarkdownText(txt) {
     // https://en.wikipedia.org/wiki/Help:Wikitext
     txt = txt.replace(/\[\[(?<link>.+?)\]\]/gi, '[$<link>](/$<link>)');
+    txt = txt.replace(/'''(?<txt>.+?)'''/gi, '***$<txt>***');
+    txt = txt.replace(/''(?<txt>.+?)''/gi, '**$<txt>**');
+    txt = txt.replace(/'(?<txt>.+?)'/gi, '*$<txt>*');
     return txt;
 }
