@@ -42,6 +42,11 @@ describe('text', function() {
                 'some <i>italics</i> and <b>bold</b> and <b><i>bold italcs EUDA</i></b> and <i>more italics</i>');
         });
 
+        it('heading', function() {
+            assert.strictEqual(parseMarkdown(buildLink, "## Some Heading\n").innerHTML,
+                '<h2>Some Heading</h2>');
+        });
+
         it('not a string (number)', function() {
             assert.strictEqual(parseMarkdown(buildLink, 42).innerHTML,
                 '42');

@@ -56,7 +56,7 @@ const incomingMessageHandler = {
     request: async (peerName, chan, request) => {
         const page = request.url.replace(/^\/*/, '')
         const wikiContent = await wikiPage(page);
-        let c = wikiContent.title + '\n\n' + wikiContent.wikitext;
+        let c = '\n\n\n\n# ' + wikiContent.title + '\n' + wikiContent.wikitext;
         console.log(`request for ${request.url} as page`, page, wikiContent);
         chan.send(JSON.stringify({
             response: {
