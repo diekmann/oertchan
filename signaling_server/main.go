@@ -1,14 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
-	"os"
+	"time"
 )
 
 type val struct {
@@ -86,7 +88,9 @@ func (s *Store) RelayAnswer(remoteUID string, answer string) error {
 
 // Accepts an offer and will reply with an answer. May be a very longrunning connection.
 func offer(s *Store, w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	// This would work without the Timeout, but heroku does not like longrunning stuff.
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
 
 	var body struct {
 		Uid   string
@@ -114,7 +118,11 @@ func offer(s *Store, w http.ResponseWriter, r *http.Request) {
 	case a := <-answer:
 		fmt.Fprintf(w, `{"answer":%q}`, a)
 	case <-ctx.Done():
-		log.Printf("waiting on offer: ctx.Done (client closed connection)")
+		reason := fmt.Sprintf("%v", ctx.Err())
+		if errors.Is(ctx.Err(), context.Canceled) {
+			reason += ", client closed connection"
+		}
+		log.Printf("waiting on offer: ctx.Done (reason: %v)", reason)
 		return
 	}
 }
