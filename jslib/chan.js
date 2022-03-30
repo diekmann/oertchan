@@ -122,7 +122,10 @@ const chan = (() => {
             .then(response => {
                 logger(`POST ${url}: ${response}`);
                 if (!response.ok) {
-                    const e = `error talking to ${url}: ` + response.statusText;
+                    if (response.status == 408) {
+                        console.error("TODO: retry here and don't leak the WebRTC connection (resuse it)!");
+                    }
+                    const e = `error talking to ${url}: ${response.statusText} (${response.status})`;
                     throw e;
                 }
                 return response.json();
