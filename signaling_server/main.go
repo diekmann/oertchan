@@ -123,6 +123,10 @@ func offer(s *Store, w http.ResponseWriter, r *http.Request) {
 			reason += ", client closed connection"
 		}
 		log.Printf("waiting on offer: ctx.Done (reason: %v)", reason)
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			// likely, the client connection is still open and the cloint should retry.
+			http.Error(w, "please retry", http.StatusRequestTimeout)
+		}
 		return
 	}
 }
