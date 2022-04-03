@@ -104,32 +104,40 @@ const chan = (() => {
 
         const url = `${srv}/offer`;
 
-        logger(`POSTing my offer to ${url}`);
-        return fetch(url, {
-                method: 'POST',
-                mode: 'cors',
-                cache: 'no-cache',
-                credentials: 'omit',
-                headers: {
-                    'Content-Type': 'application/json'
-                }, // not allowed by CORS without preflight.
-                // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
-                body: JSON.stringify({
-                    'uid': uid,
-                    'offer': theOffer
-                })
-            })
-            .then(response => {
-                logger(`POST ${url}: ${response}`);
-                if (!response.ok) {
-                    if (response.status == 408) {
-                        console.error("TODO: retry here and don't leak the WebRTC connection (resuse it)!");
-                    }
-                    const e = `error talking to ${url}: ${response.statusText} (${response.status})`;
-                    throw e;
+        const postOffer = async () => {
+            let attempt = 1;
+            let response;
+            while (true) {
+                logger(`POSTing my offer to ${url} (attempt ${attempt})`);
+                response = await fetch(url, {
+                    method: 'POST',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    credentials: 'omit',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }, // not allowed by CORS without preflight.
+                    // headers: { 'Content-Type': 'text/plain' }, // simple CORS request, no preflight.
+                    body: JSON.stringify({
+                        'uid': uid,
+                        'offer': theOffer
+                    })
+                });
+                logger(`POST ${url}: ${response.statusText}`);
+                if (response.ok) {
+                    break;
                 }
-                return response.json();
-            })
+                if (response.status == 408) {
+                    // retry here and don't leak the WebRTC connection (resuse it)!
+                    attempt += 1;
+                    continue;
+                }
+                const e = `error talking to ${url}: ${response.statusText} (${response.status})`;
+                throw e;
+            }
+            return response.json();
+        };
+        return postOffer()
             .then(data => {
                 logger(`got answer: JSON for ${url}: ${data}`);
                 const v = JSON.parse(data.answer);
