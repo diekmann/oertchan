@@ -1,12 +1,48 @@
 "use strict";
 
+// TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
+const userIdentity = (async () => {
+    const key = await window.crypto.subtle.generateKey({
+                name: "ECDSA",
+                namedCurve: "P-521", // Are there no other curve and how do I market this now as PQ?
+            },
+            false, // not extractable
+            ["sign", "verify"]
+        ).then(key => {
+            console.log(key);
+            return key;
+        })
+        .catch(err => {
+            console.error(err);
+        });
+    const uid = await window.crypto.subtle.exportKey(
+        "spki", //can be "jwk" (public or private), "spki" (public only), or "pkcs8" (private only)
+        key.publicKey
+    ).then(keydata => {
+        console.log(keydata);
+        return window.crypto.subtle.digest({
+            name: "SHA-384"
+        }, keydata);
+    }).then(hash => {
+        const strHash = Array.from(new Uint8Array(hash)).map(i => i.toString(16).padStart(2, '0')).join('');
+        return strHash;
+    }).catch(function(err) {
+        console.error(err);
+    });
+    return {
+        uid: uid,
+        key: key
+    };
+})();
+console.log(userIdentity); // this is just a promise, I need it resolved!!!
+
 // Establish and manage the RTCDataChannels. Core örtchan protocol.
 
 const chans = (() => {
     // User ID
     const uid = (() => {
         let array = new Uint8Array(24);
-        globalThis.crypto.getRandomValues(array);
+        self.crypto.getRandomValues(array);
         return Array.from(array).map(i => i.toString(16).padStart(2, '0')).join('');
     })();
 
