@@ -14,9 +14,6 @@ function logTxt_generic(txt) {
 };
 
 
-logTxt_generic(`My uid: ${chans.uid}`)
-
-
 // The chatBox handles broadcasted gosspied messages and is a global chat.
 const chatBox = (() => {
     const elem = document.getElementById('chatBox');
@@ -71,11 +68,12 @@ const chatBox = (() => {
         event.preventDefault();
 
         const message = messageInputBox.value;
+        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx TODO: ChatBox needs to be a class, initialized with the chans instance.
         for (let c of chans.chans) {
             console.log("sending a message to", c);
             try {
                 c.send(JSON.stringify({
-                    setPeerName: chans.uid,
+                    setPeerName: chans.myID(),
                     message: message,
                 }));
             } catch (error) {
@@ -83,7 +81,7 @@ const chatBox = (() => {
             };
         }
 
-        append(formatMessage(chans.uid, parseMarkdown(formatLink(chans.loopbackChan), message)));
+        append(formatMessage(chans.myID(), parseMarkdown(formatLink(chans.loopbackChan), message)));
 
         // Clear the input box and re-focus it, so that we're
         // ready for the next message.
@@ -238,13 +236,13 @@ const peerList = (() => {
     return {
         insert: (chan) => {
             const li = document.createElement("li");
-            li.innerText = `new chan ${chans.peerName(chan)}`;
+            li.innerText = `new chan ${Chans.peerName(chan)}`;
             peerList.appendChild(li);
             chan.peerListEntry = li;
         },
         refresh: (chan) => {
             const li = chan.peerListEntry;
-            li.innerText = `${chans.peerName(chan)}`;
+            li.innerText = `${Chans.peerName(chan)}`;
             blink(chan);
         },
         blink: blink,
@@ -252,7 +250,12 @@ const peerList = (() => {
 })();
 
 // main
-(() => {
+(async () => {
+    const chans = new Chans();
+    await chans.init();
+    logTxt_generic(`My uid: ${chans.myID()}`)
+    console.log(chans);
+
     const incomingMessageHandler = {
         peerName: (peerName, chan) => peerList.refresh(chan),
 
@@ -264,7 +267,7 @@ const peerList = (() => {
                 case "/index":
                     chan.send(JSON.stringify({
                         response: {
-                            content: `Hello, my name is ${chans.uid}. Nice talking to you, ${chans.peerName(chan)}. [Send me a private message](/dm).`,
+                            content: `Hello, my name is ${chans.myID}. Nice talking to you, ${Chans.peerName(chan)}. [Send me a private message](/dm).`,
                         },
                     }));
                     break;
@@ -283,12 +286,12 @@ const peerList = (() => {
                             // Echo back
                             chan.send(JSON.stringify({
                                 response: {
-                                    content: `${chans.peerName(chan)}: ${request.content}`,
+                                    content: `${Chans.peerName(chan)}: ${request.content}`,
                                     showPostForm: true,
                                 },
                             }));
                             // Display somewhere.
-                            chatBox.append(formatMessage(`Private message from ${chans.peerName(chan)}`, document.createTextNode(request.content)));
+                            chatBox.append(formatMessage(`Private message from ${Chans.peerName(chan)}`, document.createTextNode(request.content)));
                             break;
                     }
                     break;
