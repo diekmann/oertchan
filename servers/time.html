@@ -56,8 +56,12 @@ const onChanReady = (chan) => {
     }));
 };
 
-chans.offerLoop(logger, onChanReady, incomingMessageHandler);
-chans.acceptLoop(logger, onChanReady, incomingMessageHandler);
+(async () => {
+    const chans = new Chans();
+    await chans.init(logger);
+    chans.offerLoop(logger, onChanReady, incomingMessageHandler);
+    chans.acceptLoop(logger, onChanReady, incomingMessageHandler);
+})()
 </script>
 </body>
 
