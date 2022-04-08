@@ -45,12 +45,6 @@ class Chans {
     }
 
     // User ID
-    //const uid = (() => {
-    //    let array = new Uint8Array(24);
-    //    self.crypto.getRandomValues(array);
-    //    return Array.from(array).map(i => i.toString(16).padStart(2, '0')).join('');
-    //})();
-
     myID() {
         return this.uid.uid;
     }
