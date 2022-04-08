@@ -1,12 +1,12 @@
 "use strict";
 
 
-
 // Establish and manage the RTCDataChannels. Core örtchan protocol.
 
 class Chans {
     // TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
-    async init() { // async function, must be called first and only once.
+    // TODO: in typescript, we can probably model this better, without having to call async init and passing a UserIdentity as param instead to constructor.
+    async init(logger) { // async function, must be called first and only once.
         const key = await window.crypto.subtle.generateKey({
                     name: "ECDSA",
                     namedCurve: "P-521", // Are there no other curve and how do I market this now as PQ?
@@ -14,17 +14,16 @@ class Chans {
                 false, // not extractable
                 ["sign", "verify"]
             ).then(key => {
-                console.log(key);
                 return key;
             })
             .catch(err => {
                 console.error(err);
             });
+        logger(`created key type ${key.publicKey.algorithm.name}`);
         const uidHash = await window.crypto.subtle.exportKey(
             "spki", //can be "jwk" (public or private), "spki" (public only), or "pkcs8" (private only)
             key.publicKey
         ).then(keydata => {
-            console.log(keydata);
             return window.crypto.subtle.digest({
                 name: "SHA-384"
             }, keydata);

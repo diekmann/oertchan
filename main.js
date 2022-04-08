@@ -252,9 +252,8 @@ const peerList = (() => {
 // main
 (async () => {
     const chans = new Chans();
-    await chans.init();
+    await chans.init(logTxt_generic);
     logTxt_generic(`My uid: ${chans.myID()}`)
-    console.log(chans);
 
     const incomingMessageHandler = {
         peerName: (peerName, chan) => peerList.refresh(chan),
