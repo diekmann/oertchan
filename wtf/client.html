@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>client</title>
+    <meta charset="utf-8">
+</head>
+
+<body>
+    <h1>Client</h1>
+<script>
+(async () => {
+       const url = `http://localhost:8080/foobar`;
+
+        const postFoo = async () => {
+            let attempt = 1;
+            let response;
+            while (true) {
+                console.log(`POSTing my foo to ${url} (attempt ${attempt})`);
+                response = await fetch(url, {
+                    method: 'POST',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    credentials: 'omit',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        'foo': "foo"
+                    })
+                });
+                console.log(`POST ${url}: ${response.statusText}`);
+                if (response.ok) {
+                    console.log(`response ok`);
+                    break;
+                }
+                if (response.status == 408) {
+                    console.log(`retry`);
+                    attempt += 1;
+                    continue;
+                }
+                const e = `error talking to ${url}: ${response.statusText} (${response.status})`;
+                throw e;
+            }
+            return response.json();
+        };
+        return postFoo()
+            .then(data => {
+                console.log(`got answer: JSON for ${url}: ${data}`);
+            })
+            .catch((e) => {
+                console.error(`posting offer error`, e);
+            });
+
+})();
+</script>
+</body>
+
+</html>
+
