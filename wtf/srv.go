@@ -89,7 +89,6 @@ func corsAllow(w http.ResponseWriter, r *http.Request, methods []string) error {
 		http.Error(w, `got unexpected amount of Content-Type`, http.StatusBadRequest)
 		return stop
 	}
-	// echo -e 'POST /offer HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/jsonX\r\n\r\n"yolo"' | nc -v 127.0.0.1 8080
 	if ct[0] != "application/json" {
 		http.Error(w, `want Content-Type "application/json"`, http.StatusBadRequest)
 		return stop
