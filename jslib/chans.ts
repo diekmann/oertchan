@@ -1,6 +1,14 @@
 "use strict";
 
 
+type IncomingMessageHandler = {
+    peerName: (peerName: string, chan: any) => void,
+    message: (peerName: string, chan: any, message: any) => void,
+    request: (peerName: string, chan: any, request: any) => void,
+    response: (peerName: string, chan: any, response: any) => void,
+    default: (peerName: string, chan: any, d: any) => void,
+};
+
 // Establish and manage the RTCDataChannels. Core örtchan protocol.
 
 class Chans {
@@ -11,7 +19,7 @@ class Chans {
 
     // TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
     // TODO: in typescript, we can probably model this better, without having to call async init and passing a UserIdentity as param instead to constructor.
-    async init(logger) { // async function, must be called first and only once.
+    async init(logger: Logger) { // async function, must be called first and only once.
         const key = await window.crypto.subtle.generateKey({
                     name: "ECDSA",
                     namedCurve: "P-521", // Are there no other curve and how do I market this now as PQ?
@@ -60,8 +68,7 @@ class Chans {
         this.chans = []; // connections to peers.
     }
 
-
-    static incomingMessage(logger, handler, chan) {
+    static incomingMessage(logger: Logger, handler: IncomingMessageHandler, chan) {
         return event => {
             logger(`handling received message from ${Chans.peerName(chan)}`);
             let d;
@@ -122,9 +129,7 @@ class Chans {
         };
     }
 
-
-    // private
-    registerChanAndReady(logger, onChanReady, incomingMessageHandler) {
+    private registerChanAndReady(logger: Logger, onChanReady, incomingMessageHandler: IncomingMessageHandler) {
         return (chan) => {
             this.chans.push(chan);
             chan.onmessage = Chans.incomingMessage(logger, incomingMessageHandler, chan);
@@ -132,12 +137,12 @@ class Chans {
         };
     }
 
-    async offerLoop(logger, onChanReady, incomingMessageHandler) {
+    async offerLoop(logger: Logger, onChanReady, incomingMessageHandler: IncomingMessageHandler) {
         await chan.offer(logger, this.myID(), this.registerChanAndReady(logger, onChanReady, incomingMessageHandler));
         setTimeout(() => this.offerLoop(logger, onChanReady, incomingMessageHandler), 5000)
     }
 
-    async acceptLoop(logger, onChanReady, incomingMessageHandler) {
+    async acceptLoop(logger: Logger, onChanReady, incomingMessageHandler: IncomingMessageHandler) {
         // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
         const selectRemotePeer = (uids) => {
             const us = uids.filter(u => u != this.myID() && !this.chans.map(Chans.peerName).includes(u));

@@ -1,5 +1,7 @@
 "use strict";
 
+type Logger = (txt: string) => void;
+
 // Library to establish RTCDataChannels via WebRTC.
 // based on https://github.com/mdn/samples-server/blob/master/s/webrtc-simple-datachannel/main.js
 
@@ -8,7 +10,7 @@ const chan = (() => {
     //const srv = "http://localhost:8080";
     const srv = "https://oertchan.herokuapp.com";
 
-    function newRTCPeerConnection(logger) {
+    function newRTCPeerConnection(logger: Logger) {
         // Without a stun server, we will only get .local candidates.
         const con = new RTCPeerConnection({
             'iceServers': [
@@ -45,7 +47,7 @@ const chan = (() => {
         return con;
     };
 
-    function icecandidatesPromise(con: RTCPeerConnection, logger) {
+    function icecandidatesPromise(con: RTCPeerConnection, logger: Logger) {
         return new Promise(resolve => {
             const candidates: RTCIceCandidate[] = [];
             // Collect the ICE candidates.
@@ -66,7 +68,7 @@ const chan = (() => {
         });
     }
 
-    async function offer(logger, uid, onChanReady) {
+    async function offer(logger: Logger, uid, onChanReady) {
         logger("-".repeat(72));
         logger(`trying to offer a new connection`);
         const con = newRTCPeerConnection(logger);
@@ -161,7 +163,7 @@ const chan = (() => {
     };
 
 
-    async function accept(logger, uid, selectRemotePeer, onChanReady) {
+    async function accept(logger: Logger, uid, selectRemotePeer, onChanReady) {
         logger("-".repeat(72));
         logger(`trying to accept something`);
 
@@ -273,7 +275,7 @@ const chan = (() => {
                 con.setRemoteDescription(offer);
                 for (let c of candidates) {
                     con.addIceCandidate(c)
-                        .then(logger(`candidate from remote added`))
+                        .then(() => logger(`candidate from remote added`))
                         .catch((e) => logger(`error adding ice candidate: ${e}`));
                 };
 
