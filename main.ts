@@ -1,30 +1,30 @@
 "use strict";
 
-function logTo(logArea, txt) {
+function logTo(logArea: HTMLInputElement, txt: string) {
     const userHasScrolled = (logArea.scrollTop + logArea.offsetHeight < logArea.scrollHeight);
     logArea.value += "\n" + txt;
     if (!userHasScrolled) {
         logArea.scrollTop = logArea.scrollHeight;
     }
 };
-const logArea_generic = document.getElementById("logarea_generic");
+const logArea_generic  = <HTMLInputElement>document.getElementById("logarea_generic");
 
-function logTxt_generic(txt) {
+function logTxt_generic(txt: string) {
     logTo(logArea_generic, txt);
 };
 
 
 // The ChatBox handles broadcasted gosspied messages and is a global chat.
 class ChatBox {
-    public chans;
-    public elem;
+    public chans: Chans;
+    public elem: HTMLElement;
     
-    constructor(chans) {
+    constructor(chans: Chans) {
         this.chans = chans;
         this.elem = document.getElementById('chatBox');
 
         const sendMessageForm = document.getElementById('sendMessageForm');
-        const messageInputBox = document.getElementById('inputmessage');
+        const messageInputBox = <HTMLInputElement>document.getElementById('inputmessage');
     
         // Handles clicks on the "Send" button by transmitting a message.
         sendMessageForm.addEventListener('submit', event => {
@@ -55,8 +55,8 @@ class ChatBox {
         }, false);
     }
 
-    append(content) {
-        let t;
+    append(content: HTMLElement | string) {
+        let t: HTMLElement;
         if (content instanceof HTMLElement) {
             t = content
         } else {
@@ -73,7 +73,7 @@ class ChatBox {
     }
 
     static formatLink(chan) {
-        return (linkName, href) => {
+        return (linkName: string, href: string) => {
             let a = document.createElement('a');
             a.innerText = linkName;
             a.href = öURL(chan, href);
@@ -98,6 +98,14 @@ class ChatBox {
 
 // A PeerBox handles peer2peer request responses.
 class PeerBox {
+    private chan;
+    private target: string;
+
+    private elem: HTMLElement;
+    private elemContent: HTMLElement;
+    private elemTitleText: HTMLElement;
+    private elemFooterForm: HTMLElement;
+
     constructor(chan) {
         this.chan = chan;
         this.target = '/';
@@ -111,9 +119,8 @@ class PeerBox {
         });
         const title = Object.assign(document.createElement('div'), {
             className: 'title',
-            onmousedown: (e) => {
+            onmousedown: (e: MouseEvent) => {
                 // making box movable inspired by https://www.w3schools.com/howto/howto_js_draggable.asp
-                e = e || window.event;
                 e.preventDefault();
                 // get the mouse cursor position at startup:
                 let pos3 = e.clientX;
@@ -124,8 +131,7 @@ class PeerBox {
                     document.onmousemove = null;
                 };
                 // call a function whenever the cursor moves:
-                document.onmousemove = (e) => {
-                    e = e || window.event;
+                document.onmousemove = (e: MouseEvent) => {
                     e.preventDefault();
                     // calculate the new cursor position:
                     let pos1 = pos3 - e.clientX;
@@ -146,7 +152,7 @@ class PeerBox {
         const titleClose = Object.assign(document.createElement('a'), {
             className: 'tileclose',
             innerText: 'X',
-            onclick: (event) => {
+            onclick: (event: Event) => {
                 event.preventDefault();
                 content.innerHTML = 'content placeholder (nothing received from remote so far)<br>';
                 this.setHidden()
@@ -194,7 +200,7 @@ class PeerBox {
         this.elemFooterForm = footerForm;
     }
 
-    append(e) {
+    append(e: HTMLElement) {
         this.elemContent.appendChild(e);
         this.elemContent.appendChild(document.createElement("br"));
         e.scrollIntoView({
@@ -211,7 +217,7 @@ class PeerBox {
         this.elem.style.visibility = 'hidden';
         this.postFormHidden()
     }
-    setTarget(href) {
+    setTarget(href: string) {
         this.target = href;
         const öhref = öURL(this.chan, href);
         this.elemTitleText.innerText = `Connection to ${öhref}`;
@@ -268,7 +274,7 @@ const peerList = (() => {
                 case "/index":
                     chan.send(JSON.stringify({
                         response: {
-                            content: `Hello, my name is ${chans.myID}. Nice talking to you, ${Chans.peerName(chan)}. [Send me a private message](/dm).`,
+                            content: `Hello, my name is ${chans.myID()}. Nice talking to you, ${Chans.peerName(chan)}. [Send me a private message](/dm).`,
                         },
                     }));
                     break;
@@ -322,7 +328,7 @@ const peerList = (() => {
             }
         },
         default: (peerName, chan, data) => {
-            chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
+            chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(data)}`)));
         },
     };
 
@@ -338,6 +344,6 @@ const peerList = (() => {
         }));
     };
 
-    chans.offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
-    chans.acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
+    chans.offerLoop((txt) => logTo(<HTMLInputElement>document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
+    chans.acceptLoop((txt) => logTo(<HTMLInputElement>document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
 })();
