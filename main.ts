@@ -16,6 +16,9 @@ function logTxt_generic(txt) {
 
 // The ChatBox handles broadcasted gosspied messages and is a global chat.
 class ChatBox {
+    public chans;
+    public elem;
+    
     constructor(chans) {
         this.chans = chans;
         this.elem = document.getElementById('chatBox');

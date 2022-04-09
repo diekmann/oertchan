@@ -109,6 +109,7 @@ const chan = (() => {
             let response;
             while (true) {
                 logger(`POSTing my offer to ${url} (attempt ${attempt})`);
+                console.log(`POSTing my offer to ${url} (attempt ${attempt})`);
                 response = await fetch(url, {
                     method: 'POST',
                     mode: 'cors',
@@ -125,10 +126,12 @@ const chan = (() => {
                 });
                 logger(`POST ${url}: ${response.statusText}`);
                 if (response.ok) {
+                    logger(`response ok`);
                     break;
                 }
                 if (response.status == 408) {
                     // retry here and don't leak the WebRTC connection (resuse it)!
+                    logger(`retry`);
                     attempt += 1;
                     continue;
                 }
@@ -152,6 +155,7 @@ const chan = (() => {
                 }
             })
             .catch((e) => {
+                console.error(`posting offer error`, e);
                 logger(`posting offer error: ${e}`);
             });
     };
