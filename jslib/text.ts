@@ -8,7 +8,10 @@ function parseMarkdown(buildLink, md) {
     // Is Markdown even regular? ¯\_(ツ)_/¯
 
     class Token {
-        constructor(name, re, processor) {
+        public name: string;
+        public re: RegExp;
+        public processor;
+        constructor(name: string, re: RegExp, processor: (groups: any) => HTMLElement) {
             this.name = name;
             this.re = re;
             this.processor = processor;
@@ -92,7 +95,7 @@ function parseMarkdown(buildLink, md) {
     return t;
 }
 
-function formatMessage(from, message) {
+function formatMessage(from: string, message: Text | HTMLElement) {
     let t = document.createElement("span");
     t.appendChild(document.createTextNode(`From ${from}: `));
     t.appendChild(message);
@@ -102,7 +105,7 @@ function formatMessage(from, message) {
 
 // format a relative URL absolute wrt the chan. Pretty printing only.
 // browsers will likely treat this as local URL, since they don't recognize this as a scheme.
-function öURL(chan, href) {
+function öURL(chan, href: string) {
     // According to rfc3986, the scheme of a URIs must start with a-z A-Z. So örtchan is not a valid scheme.
     return "ö" + (new URL(href, `rtchan://${Chans.peerName(chan)}/`)).href;
 }

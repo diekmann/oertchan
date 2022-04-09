@@ -45,9 +45,9 @@ const chan = (() => {
         return con;
     };
 
-    function icecandidatesPromise(con, logger) {
+    function icecandidatesPromise(con: RTCPeerConnection, logger) {
         return new Promise(resolve => {
-            const candidates = [];
+            const candidates: RTCIceCandidate[] = [];
             // Collect the ICE candidates.
             con.onicecandidate = event => {
                 const c = event.candidate;

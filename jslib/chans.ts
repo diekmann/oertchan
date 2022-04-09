@@ -4,6 +4,11 @@
 // Establish and manage the RTCDataChannels. Core örtchan protocol.
 
 class Chans {
+    private uid;
+    public loopbackChan;
+
+    public chans: any[];
+
     // TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
     // TODO: in typescript, we can probably model this better, without having to call async init and passing a UserIdentity as param instead to constructor.
     async init(logger) { // async function, must be called first and only once.
@@ -15,9 +20,6 @@ class Chans {
                 ["sign", "verify"]
             ).then(key => {
                 return key;
-            })
-            .catch(err => {
-                console.error(err);
             });
         logger(`created key type ${key.publicKey.algorithm.name}`);
         const uidHash = await window.crypto.subtle.exportKey(
@@ -30,8 +32,6 @@ class Chans {
         }).then(hash => {
             const strHash = Array.from(new Uint8Array(hash)).map(i => i.toString(16).padStart(2, '0')).join('');
             return strHash;
-        }).catch(function(err) {
-            console.error(err);
         });
         this.uid = {
             uid: uidHash,
@@ -45,11 +45,11 @@ class Chans {
     }
 
     // User ID
-    myID() {
+    myID(): string {
         return this.uid.uid;
     }
 
-    static peerName(chan) {
+    static peerName(chan): string {
         if ('peerName' in chan) {
             return chan.peerName;
         }
@@ -68,7 +68,7 @@ class Chans {
             try {
                 d = JSON.parse(event.data);
             } catch (e) {
-                appendChatBox(`From ${Chans.peerName(chan)}, unparsable: ${event.data}`);
+                logger(`From ${Chans.peerName(chan)}, unparsable: ${event.data}`);
                 return;
             }
 
