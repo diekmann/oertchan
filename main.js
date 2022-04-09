@@ -1,35 +1,29 @@
 "use strict";
-
 function logTo(logArea, txt) {
     const userHasScrolled = (logArea.scrollTop + logArea.offsetHeight < logArea.scrollHeight);
     logArea.value += "\n" + txt;
     if (!userHasScrolled) {
         logArea.scrollTop = logArea.scrollHeight;
     }
-};
+}
+;
 const logArea_generic = document.getElementById("logarea_generic");
-
 function logTxt_generic(txt) {
     logTo(logArea_generic, txt);
-};
-
-
+}
+;
 // The ChatBox handles broadcasted gosspied messages and is a global chat.
 class ChatBox {
     constructor(chans) {
         this.chans = chans;
         this.elem = document.getElementById('chatBox');
-
         const sendMessageForm = document.getElementById('sendMessageForm');
         const messageInputBox = document.getElementById('inputmessage');
-    
         // Handles clicks on the "Send" button by transmitting a message.
         sendMessageForm.addEventListener('submit', event => {
             console.log(`sendng message.`);
-    
             // don't actually submit the HTML form, stay on the same page.
             event.preventDefault();
-    
             const message = messageInputBox.value;
             for (let c of this.chans.chans) {
                 console.log("sending a message to", c);
@@ -38,25 +32,25 @@ class ChatBox {
                         setPeerName: this.chans.myID(),
                         message: message,
                     }));
-                } catch (error) {
+                }
+                catch (error) {
                     console.log("sending failed:", error);
-                };
+                }
+                ;
             }
-    
             this.append(formatMessage(this.chans.myID(), parseMarkdown(ChatBox.formatLink(this.chans.loopbackChan), message)));
-    
             // Clear the input box and re-focus it, so that we're
             // ready for the next message.
             messageInputBox.value = "";
             messageInputBox.focus();
         }, false);
     }
-
     append(content) {
         let t;
         if (content instanceof HTMLElement) {
-            t = content
-        } else {
+            t = content;
+        }
+        else {
             t = document.createElement("span");
             t.appendChild(document.createTextNode(content));
         }
@@ -68,7 +62,6 @@ class ChatBox {
             inline: "nearest"
         });
     }
-
     static formatLink(chan) {
         return (linkName, href) => {
             let a = document.createElement('a');
@@ -78,7 +71,6 @@ class ChatBox {
                 event.preventDefault();
                 chan.peerBox.setVisible();
                 chan.peerBox.setTarget(href);
-
                 chan.send(JSON.stringify({
                     request: {
                         method: "GET",
@@ -86,20 +78,16 @@ class ChatBox {
                     },
                 }));
                 return false;
-            }
+            };
             return a;
         };
     }
 }
-
-
 // A PeerBox handles peer2peer request responses.
 class PeerBox {
     constructor(chan) {
         this.chan = chan;
         this.target = '/';
-
-
         // Shoule be the following HTML. TODO: is there a nicer way?
         // <div class="title"><span class="titletext" width="100%">title</span><span class="tileclose" style="float: right;">X</span></div>
         // <div class="content">content</div>
@@ -110,7 +98,6 @@ class PeerBox {
             className: 'title',
             onmousedown: (e) => {
                 // making box movable inspired by https://www.w3schools.com/howto/howto_js_draggable.asp
-                e = e || window.event;
                 e.preventDefault();
                 // get the mouse cursor position at startup:
                 let pos3 = e.clientX;
@@ -122,7 +109,6 @@ class PeerBox {
                 };
                 // call a function whenever the cursor moves:
                 document.onmousemove = (e) => {
-                    e = e || window.event;
                     e.preventDefault();
                     // calculate the new cursor position:
                     let pos1 = pos3 - e.clientX;
@@ -146,18 +132,16 @@ class PeerBox {
             onclick: (event) => {
                 event.preventDefault();
                 content.innerHTML = 'content placeholder (nothing received from remote so far)<br>';
-                this.setHidden()
+                this.setHidden();
             },
         });
         title.appendChild(titleText);
         title.appendChild(titleClose);
         elem.appendChild(title);
-
         const content = Object.assign(document.createElement('div'), {
             className: 'content',
         });
         elem.appendChild(content);
-
         const footer = Object.assign(document.createElement('div'), {
             className: 'footer',
         });
@@ -178,19 +162,15 @@ class PeerBox {
                     },
                 }));
             },
-        })
+        });
         footer.appendChild(footerForm);
         elem.appendChild(footer);
-
         document.body.insertBefore(elem, document.getElementById('flexcontainer'));
-
-
         this.elem = elem;
         this.elemContent = content;
         this.elemTitleText = titleText;
         this.elemFooterForm = footerForm;
     }
-
     append(e) {
         this.elemContent.appendChild(e);
         this.elemContent.appendChild(document.createElement("br"));
@@ -206,7 +186,7 @@ class PeerBox {
     }
     setHidden() {
         this.elem.style.visibility = 'hidden';
-        this.postFormHidden()
+        this.postFormHidden();
     }
     setTarget(href) {
         this.target = href;
@@ -220,10 +200,8 @@ class PeerBox {
         this.elemFooterForm.style.visibility = 'visible';
     }
 }
-
 const peerList = (() => {
     const peerList = document.getElementById('peerList');
-
     const blink = (chan) => {
         const li = chan.peerListEntry;
         li.style = "";
@@ -245,18 +223,14 @@ const peerList = (() => {
         blink: blink,
     };
 })();
-
 // main
 (async () => {
     const chans = new Chans();
     await chans.init(logTxt_generic);
-    logTxt_generic(`My uid: ${chans.myID()}`)
-
+    logTxt_generic(`My uid: ${chans.myID()}`);
     const chatBox = new ChatBox(chans);
-
     const incomingMessageHandler = {
         peerName: (peerName, chan) => peerList.refresh(chan),
-
         message: (peerName, chan, message) => {
             chatBox.append(formatMessage(peerName, parseMarkdown(ChatBox.formatLink(chan), message)));
         },
@@ -265,7 +239,7 @@ const peerList = (() => {
                 case "/index":
                     chan.send(JSON.stringify({
                         response: {
-                            content: `Hello, my name is ${chans.myID}. Nice talking to you, ${Chans.peerName(chan)}. [Send me a private message](/dm).`,
+                            content: `Hello, my name is ${chans.myID()}. Nice talking to you, ${Chans.peerName(chan)}. [Send me a private message](/dm).`,
                         },
                     }));
                     break;
@@ -307,34 +281,31 @@ const peerList = (() => {
             let content;
             if ('content' in response) {
                 content = parseMarkdown(ChatBox.formatLink(chan), response.content);
-            } else {
+            }
+            else {
                 content = document.createTextNode(`could not understand response: ${JSON.stringify(response)}`);
             }
             chan.peerBox.append(content);
-
             if (response.showPostForm) {
                 chan.peerBox.postFormVisible();
-            } else {
+            }
+            else {
                 chan.peerBox.postFormHidden();
             }
         },
         default: (peerName, chan, data) => {
-            chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(d)}`)));
+            chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(data)}`)));
         },
     };
-
     const onChanReady = (chan) => {
         // The chan knows the peerBox and the PeerBox knowns the chan. Am I holding this correctly?
         chan.peerBox = new PeerBox(chan);
-
         peerList.insert(chan);
         peerList.refresh(chan);
-
         chan.send(JSON.stringify({
             message: `Check out [this cool link](/index)!!`
         }));
     };
-
     chans.offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
     chans.acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
 })();
