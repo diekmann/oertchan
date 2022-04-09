@@ -100,7 +100,6 @@ class Chans {
             }
         };
     }
-    // private
     registerChanAndReady(logger, onChanReady, incomingMessageHandler) {
         return (chan) => {
             this.chans.push(chan);

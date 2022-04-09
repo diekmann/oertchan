@@ -250,7 +250,7 @@ const chan = (() => {
             con.setRemoteDescription(offer);
             for (let c of candidates) {
                 con.addIceCandidate(c)
-                    .then(logger(`candidate from remote added`))
+                    .then(() => logger(`candidate from remote added`))
                     .catch((e) => logger(`error adding ice candidate: ${e}`));
             }
             ;
