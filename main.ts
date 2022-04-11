@@ -263,7 +263,7 @@ const peerList = (() => {
 
     const chatBox = new ChatBox(chans);
 
-    const incomingMessageHandler = {
+    const incomingMessageHandler: IncomingMessageHandler = {
         peerName: (peerName, chan) => peerList.refresh(chan),
 
         message: (peerName, chan, message) => {
@@ -332,7 +332,7 @@ const peerList = (() => {
         },
     };
 
-    const onChanReady = (chan) => {
+    const onChanReady = (chan: ÖChan) => {
         // The chan knows the peerBox and the PeerBox knowns the chan. Am I holding this correctly?
         chan.peerBox = new PeerBox(chan);
 

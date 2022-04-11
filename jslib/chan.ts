@@ -10,7 +10,7 @@ const chan = (() => {
     //const srv = "http://localhost:8080";
     const srv = "https://oertchan.herokuapp.com";
 
-    function newRTCPeerConnection(logger: Logger) {
+    function newRTCPeerConnection(logger: Logger): RTCPeerConnection {
         // Without a stun server, we will only get .local candidates.
         const con = new RTCPeerConnection({
             'iceServers': [
@@ -47,12 +47,12 @@ const chan = (() => {
         return con;
     };
 
-    function icecandidatesPromise(con: RTCPeerConnection, logger: Logger) {
+    function icecandidatesPromise(con: RTCPeerConnection, logger: Logger): Promise<RTCIceCandidate[]> {
         return new Promise(resolve => {
             const candidates: RTCIceCandidate[] = [];
             // Collect the ICE candidates.
             con.onicecandidate = event => {
-                const c = event.candidate;
+                const c: RTCIceCandidate = event.candidate;
                 if (c) {
                     // Empty candidate signals end of candidates.
                     if (!c.candidate) {
@@ -68,7 +68,7 @@ const chan = (() => {
         });
     }
 
-    async function offer(logger: Logger, uid, onChanReady) {
+    async function offer(logger: Logger, uid: string, onChanReady: (chan: RTCDataChannel) => void): Promise<void> {
         logger("-".repeat(72));
         logger(`trying to offer a new connection`);
         const con = newRTCPeerConnection(logger);
@@ -163,7 +163,7 @@ const chan = (() => {
     };
 
 
-    async function accept(logger: Logger, uid, selectRemotePeer, onChanReady) {
+    async function accept(logger: Logger, uid: string, selectRemotePeer: (us: string[]) => string, onChanReady: (chan: RTCDataChannel) => void): Promise<void> {
         logger("-".repeat(72));
         logger(`trying to accept something`);
 
@@ -185,7 +185,7 @@ const chan = (() => {
                 return response.json();
             })
             .then(data => {
-                const uids = data.uids
+                const uids: string[] = data.uids
                 logger(`server has ${uids.length} offers: ${uids}`);
 
                 // Don't connect to self, don't connect if we already have a connection to that peer.
