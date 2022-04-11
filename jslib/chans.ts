@@ -9,17 +9,19 @@ type IncomingMessageHandler = {
     default: (peerName: string, chan: any, d: any) => void,
 };
 
-// Establish and manage the RTCDataChannels. Core örtchan protocol.
 
-class Chans {
-    private uid;
-    public loopbackChan;
+// TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
+class UserIdentity {
+    private constructor(uidHash: string, key: CryptoKeyPair){
+        this.uidHash = uidHash;
+        this.key = key;
+    }
 
-    public chans: any[];
+    public uidHash: string;
+    public key: CryptoKeyPair;
 
-    // TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
-    // TODO: in typescript, we can probably model this better, without having to call async init and passing a UserIdentity as param instead to constructor.
-    async init(logger: Logger) { // async function, must be called first and only once.
+    // construct an onject, async.
+    static async create(logger: Logger) {
         const key = await window.crypto.subtle.generateKey({
                     name: "ECDSA",
                     namedCurve: "P-521", // Are there no other curve and how do I market this now as PQ?
@@ -41,10 +43,22 @@ class Chans {
             const strHash = Array.from(new Uint8Array(hash)).map(i => i.toString(16).padStart(2, '0')).join('');
             return strHash;
         });
-        this.uid = {
-            uid: uidHash,
-            key: key
-        };
+
+        return new UserIdentity(uidHash, key);
+    }
+}
+
+
+// Establish and manage the RTCDataChannels. Core örtchan protocol.
+
+class Chans {
+    private uid: UserIdentity;
+    public loopbackChan;
+
+    public chans: any[] = []; // connections to peers.
+
+    constructor(uid: UserIdentity) {
+        this.uid = uid;
 
         this.loopbackChan = {
             peerName: this.myID(),
@@ -54,7 +68,7 @@ class Chans {
 
     // User ID
     myID(): string {
-        return this.uid.uid;
+        return this.uid.uidHash;
     }
 
     static peerName(chan): string {
@@ -62,10 +76,6 @@ class Chans {
             return chan.peerName;
         }
         return "???";
-    }
-
-    constructor() {
-        this.chans = []; // connections to peers.
     }
 
     static incomingMessage(logger: Logger, handler: IncomingMessageHandler, chan) {

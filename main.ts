@@ -257,8 +257,8 @@ const peerList = (() => {
 
 // main
 (async () => {
-    const chans = new Chans();
-    await chans.init(logTxt_generic);
+    const uid = await UserIdentity.create(logTxt_generic);
+    const chans = new Chans(uid);
     logTxt_generic(`My uid: ${chans.myID()}`)
 
     const chatBox = new ChatBox(chans);
