@@ -51,7 +51,10 @@ const chan = (() => {
         return new Promise(resolve => {
             const candidates: RTCIceCandidate[] = [];
             // Collect the ICE candidates.
-            con.onicecandidate = event => {
+            con.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
+                if (!event.candidate){
+                    return;
+                }
                 const c: RTCIceCandidate = event.candidate;
                 if (c) {
                     // Empty candidate signals end of candidates.

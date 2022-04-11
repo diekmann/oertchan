@@ -1,7 +1,7 @@
 "use strict";
 
 // In JavaScript, we don't write tests, right?
-function parseMarkdown(buildLink, md) {
+function parseMarkdown(buildLink: (linkName: string, href: string) => HTMLAnchorElement, md: String) {
     md = md.toString();
     let t = document.createElement("span");
 

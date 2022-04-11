@@ -163,14 +163,14 @@ class Chans<C extends ÖChan> {
         };
     }
 
-    async offerLoop(logger: Logger, onChanReady: (chan: ÖChan) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
+    async offerLoop(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
         await chan.offer(logger, this.myID(), this.registerChanAndReady(logger, onChanReady, incomingMessageHandler));
         setTimeout(() => this.offerLoop(logger, onChanReady, incomingMessageHandler), 5000)
     }
 
-    async acceptLoop(logger: Logger, onChanReady: (chan: ÖChan) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
+    async acceptLoop(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
         // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
-        const selectRemotePeer = (uids) => {
+        const selectRemotePeer = (uids: string[]): string => {
             const us = uids.filter(u => u != this.myID() && !this.chans.map(Chans.peerName).includes(u));
             return us[Math.floor(Math.random() * us.length)];
         };
