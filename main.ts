@@ -98,7 +98,7 @@ class ChatBox {
 
 // A PeerBox handles peer2peer request responses.
 class PeerBox {
-    private chan;
+    private chan: ÖChan;
     private target: string;
 
     private elem: HTMLElement;

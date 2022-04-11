@@ -94,7 +94,7 @@ class Chans<C extends ÖChan> {
     }
 
     private incomingMessage(logger: Logger, handler: IncomingMessageHandler<C>, chan: C) {
-        return event => {
+        return (event: MessageEvent) => {
             logger(`handling received message from ${Chans.peerName(chan)}`);
             let d;
             try {
