@@ -77,7 +77,7 @@ class Chans<C extends ÖChan> {
         this.loopbackChan = {
             peerName: this.myID(),
             send: () => alert("please do not send to your loopback chan."),
-        } as C;
+        } as unknown as C;
     }
 
     // User ID
