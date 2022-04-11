@@ -10,7 +10,7 @@ function parseMarkdown(buildLink: (linkName: string, href: string) => HTMLAnchor
     class Token {
         public name: string;
         public re: RegExp;
-        public processor;
+        public processor: (groups: any) => HTMLElement;
         constructor(name: string, re: RegExp, processor: (groups: any) => HTMLElement) {
             this.name = name;
             this.re = re;
@@ -105,7 +105,7 @@ function formatMessage(from: string, message: Text | HTMLElement) {
 
 // format a relative URL absolute wrt the chan. Pretty printing only.
 // browsers will likely treat this as local URL, since they don't recognize this as a scheme.
-function öURL(chan, href: string) {
+function öURL(chan: ÖChan, href: string) {
     // According to rfc3986, the scheme of a URIs must start with a-z A-Z. So örtchan is not a valid scheme.
     return "ö" + (new URL(href, `rtchan://${Chans.peerName(chan)}/`)).href;
 }

@@ -72,7 +72,7 @@ class ChatBox {
         });
     }
 
-    static formatLink(chan) {
+    static formatLink(chan: MainÖChan) {
         return (linkName: string, href: string) => {
             let a = document.createElement('a');
             a.innerText = linkName;
@@ -106,7 +106,7 @@ class PeerBox {
     private elemTitleText: HTMLElement;
     private elemFooterForm: HTMLElement;
 
-    constructor(chan) {
+    constructor(chan: ÖChan) {
         this.chan = chan;
         this.target = '/';
 
@@ -175,7 +175,7 @@ class PeerBox {
             innerHTML: `<label for="footerpost">POST:</label>
             <input type="text" name="footerpost" placeholder="Message text" inputmode="latin" size=40 maxlength=120 autocomplete="off">
             <button id="sendButton" name="sendButton" type="submit">POST</button>`,
-            onsubmit: (event) => {
+            onsubmit: (event: Event) => {
                 event.preventDefault();
                 const value = footerForm.getElementsByTagName('input')[0].value;
                 console.log(`POST to `, this.target, ": ", value);
@@ -233,20 +233,20 @@ class PeerBox {
 const peerList = (() => {
     const peerList = document.getElementById('peerList');
 
-    const blink = (chan) => {
+    const blink = (chan: MainÖChan) => {
         const li = chan.peerListEntry;
         li.style = "";
         void li.offsetWidth; // DOM reflow
         li.style = "animation: blink-blue 1s;";
     };
     return {
-        insert: (chan) => {
+        insert: (chan: MainÖChan) => {
             const li = document.createElement("li");
             li.innerText = `new chan ${Chans.peerName(chan)}`;
             peerList.appendChild(li);
             chan.peerListEntry = li;
         },
-        refresh: (chan) => {
+        refresh: (chan: MainÖChan) => {
             const li = chan.peerListEntry;
             li.innerText = `${Chans.peerName(chan)}`;
             blink(chan);
@@ -259,6 +259,7 @@ class MainÖChan implements ÖChan {
     private chan: RTCDataChannel;
 
     public peerBox: PeerBox;
+    public peerListEntry: HTMLLIElement;
 
     constructor(c: RTCDataChannel){
         this.chan = c;
