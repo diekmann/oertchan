@@ -27,7 +27,6 @@ class UserIdentity {
         return new UserIdentity(uidHash, key);
     }
 }
-// Establish and manage the RTCDataChannels. Core örtchan protocol.
 class Chans {
     constructor(uid) {
         this.chans = []; // connections to peers.
@@ -41,6 +40,10 @@ class Chans {
     myID() {
         return this.uid.uidHash;
     }
+    static toÖChan(chan) {
+        return Object.assign(chan, {}); // TODO
+    }
+    // TODO: remove, use ÖChan directly!
     static peerName(chan) {
         if ('peerName' in chan) {
             return chan.peerName;
@@ -106,9 +109,10 @@ class Chans {
     }
     registerChanAndReady(logger, onChanReady, incomingMessageHandler) {
         return (chan) => {
-            this.chans.push(chan);
-            chan.onmessage = Chans.incomingMessage(logger, incomingMessageHandler, chan);
-            onChanReady(chan);
+            const öc = Chans.toÖChan(chan);
+            this.chans.push(öc);
+            öc.onmessage = Chans.incomingMessage(logger, incomingMessageHandler, öc);
+            onChanReady(öc);
         };
     }
     async offerLoop(logger, onChanReady, incomingMessageHandler) {
