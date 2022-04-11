@@ -52,13 +52,11 @@ const chan = (() => {
             const candidates: RTCIceCandidate[] = [];
             // Collect the ICE candidates.
             con.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
-                if (!event.candidate){
-                    return;
-                }
                 const c: RTCIceCandidate = event.candidate;
                 if (c) {
                     // Empty candidate signals end of candidates.
                     if (!c.candidate) {
+                        logger("empty candidate");
                         return;
                     }
                     logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
