@@ -1,12 +1,14 @@
 "use strict";
 
+// Establish and manage the RTCDataChannels. Core örtchan protocol.
 
-type IncomingMessageHandler = {
-    peerName: (peerName: string, chan: ÖChan) => void,
-    message: (peerName: string, chan: ÖChan, message: any) => void,
-    request: (peerName: string, chan: ÖChan, request: any) => void,
-    response: (peerName: string, chan: ÖChan, response: any) => void,
-    default: (peerName: string, chan: ÖChan, d: any) => void,
+
+type IncomingMessageHandler<C> = {
+    peerName: (peerName: string, chan: C) => void,
+    message: (peerName: string, chan: C, message: any) => void,
+    request: (peerName: string, chan: C, request: any) => void,
+    response: (peerName: string, chan: C, response: any) => void,
+    default: (peerName: string, chan: C, d: any) => void,
 };
 
 
@@ -49,37 +51,38 @@ class UserIdentity {
 }
 
 
-// Establish and manage the RTCDataChannels. Core örtchan protocol.
-
-interface ÖChan extends RTCDataChannel {
+interface ÖChan  {
     // TODO: how do I model monkey patching in TypeScript
     //private thePeerName?: string;
     //setPeerName(pn: string): void;
     peerName?: string;
+
+    // RTCDataChannel.send
+    send: (data: string) => void;
+
+    //private chan: RTCDataChannel;
 }
 
-class Chans {
+class Chans<C extends ÖChan> {
     private uid: UserIdentity;
-    public loopbackChan: ÖChan;
+    public loopbackChan: C;
 
-    public chans: ÖChan[] = []; // connections to peers.
+    private newC: (chan: RTCDataChannel) => C;
+    public chans: C[] = []; // connections to peers.
 
-    constructor(uid: UserIdentity) {
+    constructor(uid: UserIdentity, newC: (chan: RTCDataChannel) => C) {
         this.uid = uid;
+        this.newC = newC;
 
         this.loopbackChan = {
             peerName: this.myID(),
             send: () => alert("please do not send to your loopback chan."),
-        } as ÖChan;
+        } as C;
     }
 
     // User ID
     myID(): string {
         return this.uid.uidHash;
-    }
-
-    private static toÖChan(chan: RTCDataChannel): ÖChan {
-        return Object.assign(chan, {}); // TODO
     }
 
     // TODO: remove, use ÖChan directly!
@@ -90,7 +93,7 @@ class Chans {
         return "???";
     }
 
-    private static incomingMessage(logger: Logger, handler: IncomingMessageHandler, chan: ÖChan) {
+    private incomingMessage(logger: Logger, handler: IncomingMessageHandler<C>, chan: C) {
         return event => {
             logger(`handling received message from ${Chans.peerName(chan)}`);
             let d;
@@ -151,21 +154,21 @@ class Chans {
         };
     }
 
-    private registerChanAndReady(logger: Logger, onChanReady: (chan: ÖChan) => void, incomingMessageHandler: IncomingMessageHandler): (chan: RTCDataChannel) => void {
+    private registerChanAndReady(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>): (chan: RTCDataChannel) => void {
         return (chan) => {
-            const öc = Chans.toÖChan(chan);
-            this.chans.push(öc);
-            öc.onmessage = Chans.incomingMessage(logger, incomingMessageHandler, öc);
-            onChanReady(öc);
+            const c: C = this.newC(chan);
+            this.chans.push(c);
+            chan.onmessage = this.incomingMessage(logger, incomingMessageHandler, c);
+            onChanReady(c);
         };
     }
 
-    async offerLoop(logger: Logger, onChanReady: (chan: ÖChan) => void, incomingMessageHandler: IncomingMessageHandler) {
+    async offerLoop(logger: Logger, onChanReady: (chan: ÖChan) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
         await chan.offer(logger, this.myID(), this.registerChanAndReady(logger, onChanReady, incomingMessageHandler));
         setTimeout(() => this.offerLoop(logger, onChanReady, incomingMessageHandler), 5000)
     }
 
-    async acceptLoop(logger: Logger, onChanReady: (chan: ÖChan) => void, incomingMessageHandler: IncomingMessageHandler) {
+    async acceptLoop(logger: Logger, onChanReady: (chan: ÖChan) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
         // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
         const selectRemotePeer = (uids) => {
             const us = uids.filter(u => u != this.myID() && !this.chans.map(Chans.peerName).includes(u));

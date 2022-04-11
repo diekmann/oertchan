@@ -16,10 +16,10 @@ function logTxt_generic(txt: string) {
 
 // The ChatBox handles broadcasted gosspied messages and is a global chat.
 class ChatBox {
-    public chans: Chans;
+    public chans: Chans<MainÖChan>;
     public elem: HTMLElement;
     
-    constructor(chans: Chans) {
+    constructor(chans: Chans<MainÖChan>) {
         this.chans = chans;
         this.elem = document.getElementById('chatBox');
 
@@ -255,15 +255,29 @@ const peerList = (() => {
     };
 })();
 
+class MainÖChan implements ÖChan {
+    private chan: RTCDataChannel;
+
+    public peerBox: PeerBox;
+
+    constructor(c: RTCDataChannel){
+        this.chan = c;
+    }
+
+    send(data: string): void {
+        return this.chan.send(data);
+    }
+}
+
 // main
 (async () => {
     const uid = await UserIdentity.create(logTxt_generic);
-    const chans = new Chans(uid);
+    const chans = new Chans(uid, (chan: RTCDataChannel) => new MainÖChan(chan));
     logTxt_generic(`My uid: ${chans.myID()}`)
 
     const chatBox = new ChatBox(chans);
 
-    const incomingMessageHandler: IncomingMessageHandler = {
+    const incomingMessageHandler: IncomingMessageHandler<MainÖChan> = {
         peerName: (peerName, chan) => peerList.refresh(chan),
 
         message: (peerName, chan, message) => {
@@ -332,7 +346,7 @@ const peerList = (() => {
         },
     };
 
-    const onChanReady = (chan: ÖChan) => {
+    const onChanReady = (chan: MainÖChan) => {
         // The chan knows the peerBox and the PeerBox knowns the chan. Am I holding this correctly?
         chan.peerBox = new PeerBox(chan);
 
