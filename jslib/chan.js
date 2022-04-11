@@ -44,13 +44,11 @@ const chan = (() => {
             const candidates = [];
             // Collect the ICE candidates.
             con.onicecandidate = (event) => {
-                if (!event.candidate) {
-                    return;
-                }
                 const c = event.candidate;
                 if (c) {
                     // Empty candidate signals end of candidates.
                     if (!c.candidate) {
+                        logger("empty candidate");
                         return;
                     }
                     logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
