@@ -7,6 +7,7 @@
     <script src="../jslib/adapter.js"></script>
     <script src="../jslib/chan.js"></script>
     <script src="../jslib/chans.js"></script>
+    <script src="../jslib/server.js"></script>
 </head>
 
 <body>
@@ -16,14 +17,6 @@
     <div id="logger">Log messages will appear here<br></div>
 <script>
 "use strict";
-
-const logger = (txt) => {
-    const elem = document.getElementById("logger");
-    const t = document.createElement("span");
-    t.appendChild(document.createTextNode(txt));
-    elem.appendChild(t);
-    elem.appendChild(document.createElement("br"));
-};
 
 const incomingMessageHandler = {
     peerName: (peerName, chan) => undefined,
@@ -49,19 +42,13 @@ const incomingMessageHandler = {
     },
 };
 
-
 const onChanReady = (chan) => {
     chan.send(JSON.stringify({
         message: `Get the current time every second [here](/time)!!`
     }));
 };
 
-(async () => {
-    const uid = await UserIdentity.create(logger);
-    const chans = new Chans(uid, chan => chan);
-    chans.offerLoop(logger, onChanReady, incomingMessageHandler);
-    chans.acceptLoop(logger, onChanReady, incomingMessageHandler);
-})()
+serve(incomingMessageHandler, onChanReady);
 </script>
 </body>
 
