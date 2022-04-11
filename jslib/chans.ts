@@ -55,7 +55,7 @@ interface ÖChan extends RTCDataChannel {
     // TODO: how do I model monkey patching in TypeScript
     //private thePeerName?: string;
     //setPeerName(pn: string): void;
-    //peerName(): string;
+    peerName?: string;
 }
 
 class Chans {
