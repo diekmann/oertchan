@@ -1,12 +1,12 @@
 "use strict";
-// Establish and manage the RTCDataChannels. Core örtchan protocol.
-class Chans {
-    constructor() {
-        this.chans = []; // connections to peers.
+// TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
+class UserIdentity {
+    constructor(uidHash, key) {
+        this.uidHash = uidHash;
+        this.key = key;
     }
-    // TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
-    // TODO: in typescript, we can probably model this better, without having to call async init and passing a UserIdentity as param instead to constructor.
-    async init(logger) {
+    // construct an onject, async.
+    static async create(logger) {
         const key = await window.crypto.subtle.generateKey({
             name: "ECDSA",
             namedCurve: "P-521", // Are there no other curve and how do I market this now as PQ?
@@ -24,10 +24,14 @@ class Chans {
             const strHash = Array.from(new Uint8Array(hash)).map(i => i.toString(16).padStart(2, '0')).join('');
             return strHash;
         });
-        this.uid = {
-            uid: uidHash,
-            key: key
-        };
+        return new UserIdentity(uidHash, key);
+    }
+}
+// Establish and manage the RTCDataChannels. Core örtchan protocol.
+class Chans {
+    constructor(uid) {
+        this.chans = []; // connections to peers.
+        this.uid = uid;
         this.loopbackChan = {
             peerName: this.myID(),
             send: () => alert("please do not send to your loopback chan."),
@@ -35,7 +39,7 @@ class Chans {
     }
     // User ID
     myID() {
-        return this.uid.uid;
+        return this.uid.uidHash;
     }
     static peerName(chan) {
         if ('peerName' in chan) {

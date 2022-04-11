@@ -79,8 +79,8 @@ const onChanReady = (chan) => {
 };
 
 (async () => {
-    const chans = new Chans();
-    await chans.init(logger);
+    const uid = await UserIdentity.create(logger);
+    const chans = new Chans(uid);
     chans.offerLoop(logger, onChanReady, incomingMessageHandler);
     chans.acceptLoop(logger, onChanReady, incomingMessageHandler);
 })()
