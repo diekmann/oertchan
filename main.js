@@ -223,10 +223,18 @@ const peerList = (() => {
         blink: blink,
     };
 })();
+class MainÖChan {
+    constructor(c) {
+        this.chan = c;
+    }
+    send(data) {
+        return this.chan.send(data);
+    }
+}
 // main
 (async () => {
     const uid = await UserIdentity.create(logTxt_generic);
-    const chans = new Chans(uid);
+    const chans = new Chans(uid, (chan) => new MainÖChan(chan));
     logTxt_generic(`My uid: ${chans.myID()}`);
     const chatBox = new ChatBox(chans);
     const incomingMessageHandler = {

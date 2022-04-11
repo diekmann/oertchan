@@ -28,9 +28,10 @@ class UserIdentity {
     }
 }
 class Chans {
-    constructor(uid) {
+    constructor(uid, newC) {
         this.chans = []; // connections to peers.
         this.uid = uid;
+        this.newC = newC;
         this.loopbackChan = {
             peerName: this.myID(),
             send: () => alert("please do not send to your loopback chan."),
@@ -40,9 +41,6 @@ class Chans {
     myID() {
         return this.uid.uidHash;
     }
-    static toÖChan(chan) {
-        return Object.assign(chan, {}); // TODO
-    }
     // TODO: remove, use ÖChan directly!
     static peerName(chan) {
         if ('peerName' in chan) {
@@ -50,7 +48,7 @@ class Chans {
         }
         return "???";
     }
-    static incomingMessage(logger, handler, chan) {
+    incomingMessage(logger, handler, chan) {
         return event => {
             logger(`handling received message from ${Chans.peerName(chan)}`);
             let d;
@@ -109,10 +107,10 @@ class Chans {
     }
     registerChanAndReady(logger, onChanReady, incomingMessageHandler) {
         return (chan) => {
-            const öc = Chans.toÖChan(chan);
-            this.chans.push(öc);
-            öc.onmessage = Chans.incomingMessage(logger, incomingMessageHandler, öc);
-            onChanReady(öc);
+            const c = this.newC(chan);
+            this.chans.push(c);
+            chan.onmessage = this.incomingMessage(logger, incomingMessageHandler, c);
+            onChanReady(c);
         };
     }
     async offerLoop(logger, onChanReady, incomingMessageHandler) {
