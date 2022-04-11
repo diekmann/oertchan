@@ -49,7 +49,7 @@ class Chans {
         return "???";
     }
     incomingMessage(logger, handler, chan) {
-        return event => {
+        return (event) => {
             logger(`handling received message from ${Chans.peerName(chan)}`);
             let d;
             try {
