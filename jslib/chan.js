@@ -43,7 +43,10 @@ const chan = (() => {
         return new Promise(resolve => {
             const candidates = [];
             // Collect the ICE candidates.
-            con.onicecandidate = event => {
+            con.onicecandidate = (event) => {
+                if (!event.candidate) {
+                    return;
+                }
                 const c = event.candidate;
                 if (c) {
                     // Empty candidate signals end of candidates.
