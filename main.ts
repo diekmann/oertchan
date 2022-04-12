@@ -241,9 +241,9 @@ const peerList = (() => {
 
     const blink = (chan: MainÖChan) => {
         const li = chan.peerListEntry;
-        li.style = "";
+        li.style.removeProperty("animation");
         void li.offsetWidth; // DOM reflow
-        li.style = "animation: blink-blue 1s;";
+        li.style.animation = "blink-blue 1s";
     };
     return {
         insert: (chan: MainÖChan) => {
