@@ -55,7 +55,7 @@ describe('text', function() {
 
     describe('öURL output as expected', function() {
         const fakeChan = {
-            peerName: 'yolo',
+            peerUID: () => "yolo",
         };
 
         it('empty', function() {

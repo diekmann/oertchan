@@ -109,9 +109,9 @@ function öURL(chan: ÖChan, href: string) {
     let result;
     try {
         // According to rfc3986, the scheme of a URIs must start with a-z A-Z. So örtchan is not a valid scheme.
-        result = "ö" + (new URL(href, `rtchan://${Chans.peerName(chan)}/`)).href;
+        result = "ö" + (new URL(href, `rtchan://${chan.peerUID()}/`)).href;
     } catch (e) {
-        console.error(`öURL(chan: ${Chans.peerName(chan)}, href: ${href}):`, e)
+        console.error(`öURL(chan: ${chan.peerUID()}, href: ${href}):`, e)
         throw e;
     }
     return result;

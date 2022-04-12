@@ -133,8 +133,6 @@ class PeerIdentity {
 
 }
 
-
-// TODO: use me
 type SetPeerNameMessage = {
     initial?: {
         pubKey: string; // hexlified spki
@@ -156,14 +154,17 @@ class ÖChan {
         this.chan = c;
     }
 
-    // TODO: constructor
-
     // RTCDataChannel.send
     send(data: string): void {
         return this.chan.send(data);
     };
 
-    //private chan: RTCDataChannel;
+    peerUID(): string {
+        if (this.peerIdentity) {
+            return this.peerIdentity.uidHash;
+        }
+        return "???";
+    }
 }
 
 class Chans<C extends ÖChan> {
@@ -188,23 +189,14 @@ class Chans<C extends ÖChan> {
         return this.uid.uidHash;
     }
 
-    // TODO: remove, use ÖChan directly!
-    static peerName(chan: ÖChan): string {
-        if (chan.peerIdentity) {
-            return chan.peerIdentity.uidHash;
-            //return chan.peerIdentity.displayName();
-        }
-        return "???";
-    }
-
     private incomingMessage(logger: Logger, handler: IncomingMessageHandler<C>, chan: C) {
         return async (event: MessageEvent) => {
-            logger(`handling received message from ${Chans.peerName(chan)}`, "INFO");
+            logger(`handling received message from ${chan.peerUID()}`, "INFO");
             let d;
             try {
                 d = JSON.parse(event.data);
             } catch (e) {
-                logger(`From ${Chans.peerName(chan)}, unparsable: ${event.data}`, "WARNING");
+                logger(`From ${chan.peerUID()}, unparsable: ${event.data}`, "WARNING");
                 return;
             }
 
@@ -226,7 +218,7 @@ class Chans<C extends ÖChan> {
                     const remotePeer = await PeerIdentity.init(pk, m.initial.displayName);
                     chan.peerIdentity = remotePeer;
                     const challenge = remotePeer.generateChallenge();
-                    logger(`peer is now claiming to be ${Chans.peerName(chan)}. Sending challenge to verify.`, "INFO");
+                    logger(`peer is now claiming to be ${chan.peerUID()}. Sending challenge to verify.`, "INFO");
                     chan.send(JSON.stringify({
                         setPeerName: <SetPeerNameMessage>{challenge: challenge},
                     }));
@@ -239,7 +231,7 @@ class Chans<C extends ÖChan> {
                 } else if (m.response) {
                     const verified = chan.peerIdentity.verifyResponse(m.response);
                     if (!verified) {
-                        logger(`Failed to verify ${Chans.peerName(chan)}. Invalid repsonse.`)
+                        logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`)
                         return;
                     }
                     // now we are authenitcated.
@@ -248,7 +240,7 @@ class Chans<C extends ÖChan> {
                 delete d.setPeerName;
             }
 
-            const pn = Chans.peerName(chan);
+            const pn = chan.peerUID(); // TODO: inline below?
 
             if ('message' in d) {
                 handler.message(pn, chan, d.message);
@@ -329,7 +321,7 @@ class Chans<C extends ÖChan> {
     async acceptLoop(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
         // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
         const selectRemotePeer = (uids: string[]): string => {
-            const us = uids.filter(u => u != this.myID() && !this.chans.map(Chans.peerName).includes(u));
+            const us = uids.filter(u => u != this.myID() && !this.chans.map(c => c.peerUID()).includes(u));
             return us[Math.floor(Math.random() * us.length)];
         };
         await chan.accept(logger, selectRemotePeer, this.registerChanAndReady(logger, onChanReady, incomingMessageHandler));

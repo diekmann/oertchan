@@ -248,13 +248,13 @@ const peerList = (() => {
     return {
         insert: (chan: MainÖChan) => {
             const li = document.createElement("li");
-            li.innerText = `new chan ${Chans.peerName(chan)}`;
+            li.innerText = `new chan ${chan.peerUID()}`;
             peerList.appendChild(li);
             chan.peerListEntry = li;
         },
         refresh: (chan: MainÖChan) => {
             const li = chan.peerListEntry;
-            li.innerText = `${Chans.peerName(chan)}`;
+            li.innerText = `${chan.peerUID()}`;
             blink(chan);
         },
         blink: blink,
@@ -296,7 +296,7 @@ class MainÖChan extends ÖChan {
                 case "/index":
                     chan.send(JSON.stringify({
                         response: {
-                            content: `Hello, my name is ${chans.myID()}. Nice talking to you, ${Chans.peerName(chan)}. [Send me a private message](/dm).`,
+                            content: `Hello, my name is ${chans.myID()}. Nice talking to you, ${chan.peerUID()}. [Send me a private message](/dm).`,
                         },
                     }));
                     break;
@@ -314,12 +314,12 @@ class MainÖChan extends ÖChan {
                             // Echo back
                             chan.send(JSON.stringify({
                                 response: {
-                                    content: `${Chans.peerName(chan)}: ${request.content}`,
+                                    content: `${chan.peerUID()}: ${request.content}`,
                                     showPostForm: true,
                                 },
                             }));
                             // Display somewhere.
-                            chatBox.append(formatMessage(`Private message from ${Chans.peerName(chan)}`, document.createTextNode(request.content)));
+                            chatBox.append(formatMessage(`Private message from ${chan.peerUID()}`, document.createTextNode(request.content)));
                             break;
                     }
                     break;
