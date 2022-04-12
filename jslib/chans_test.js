@@ -26,7 +26,7 @@ describe('chans', function() {
         });
 
 
-        it('uid lenghth 284 bits', async function() {
+        it('uid lenghth 384 bits', async function() {
             const uid = await UserIdentity.create(logger);
             const bits384inHexStr = 48*2;
             assert.strictEqual(uid.uidHash.length, bits384inHexStr);
