@@ -1,6 +1,7 @@
 "use strict";
 
-type Logger = (txt: string) => void;
+type LogLevel = "DEBUG" | "INFO" | "WARNING" | "ERROR"
+type Logger = (txt: string, level?: LogLevel) => void;
 
 // Library to establish RTCDataChannels via WebRTC.
 // based on https://github.com/mdn/samples-server/blob/master/s/webrtc-simple-datachannel/main.js
@@ -38,11 +39,11 @@ const chan = (() => {
                 },
             ]
         });
-        logger(`Connection state is ${con.connectionState}`);
+        logger(`Connection state is ${con.connectionState}`, "DEBUG");
 
-        con.onsignalingstatechange = () => logger("Signaling state change: " + con.signalingState);
+        con.onsignalingstatechange = () => logger("Signaling state change: " + con.signalingState, "DEBUG");
 
-        con.oniceconnectionstatechange = () => logger("ICE connection state change: " + con.iceConnectionState);
+        con.oniceconnectionstatechange = () => logger("ICE connection state change: " + con.iceConnectionState, "DEBUG");
 
         return con;
     };
@@ -56,13 +57,13 @@ const chan = (() => {
                 if (c) {
                     // Empty candidate signals end of candidates.
                     if (!c.candidate) {
-                        logger("empty candidate");
+                        logger("empty candidate", "WARNING");
                         return;
                     }
-                    logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`);
+                    logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`, "DEBUG");
                     candidates.push(c);
                 } else {
-                    logger("All ICE candidates are collected.");
+                    logger("All ICE candidates are collected.", "DEBUG");
                     resolve(candidates);
                 }
             };
@@ -70,8 +71,8 @@ const chan = (() => {
     }
 
     async function offer(logger: Logger, uid: string, onChanReady: (chan: RTCDataChannel) => void): Promise<void> {
-        logger("-".repeat(72));
-        logger(`trying to offer a new connection`);
+        logger("-".repeat(72), "DEBUG");
+        logger(`trying to offer a new connection`, "DEBUG");
         const con = newRTCPeerConnection(logger);
 
         let candidatesPromise = icecandidatesPromise(con, logger);
@@ -79,12 +80,12 @@ const chan = (() => {
         // RTCDataChannel to actually talk to peers. Only one peer should create one.
         const chan = con.createDataChannel("sendChannel");
         chan.onclose = function(event) {
-            logger(`Send channel's status has changed to ${chan.readyState}`);
+            logger(`Send channel's status has changed to ${chan.readyState}`, "WARNING");
             // TODO: cleanup. Remove from list.
         };
         chan.onopen = function(event) {
-            logger(`Send channel's status has changed to ${chan.readyState}`);
-            logger("Sending a Howdy!");
+            logger(`Send channel's status has changed to ${chan.readyState}`, "DEBUG");
+            logger("Sending a Howdy!", "INFO");
             chan.send(JSON.stringify({
                 setPeerName: uid,
                 message: `Howdy! ${uid} just connected by providing you an offer.`
@@ -94,12 +95,12 @@ const chan = (() => {
 
         const offer = await con.createOffer()
             .then(offer => {
-                logger("have offer");
+                logger("have offer", "DEBUG");
                 con.setLocalDescription(offer);
                 return offer;
             });
 
-        logger(`my offer: ${offer}`);
+        logger(`my offer: ${offer}`, "DEBUG");
         const theOffer = {
             candidates: await candidatesPromise,
             offer: offer,
@@ -111,8 +112,7 @@ const chan = (() => {
             let attempt = 1;
             let response;
             while (true) {
-                logger(`POSTing my offer to ${url} (attempt ${attempt})`);
-                console.log(`POSTing my offer to ${url} (attempt ${attempt})`);
+                logger(`POSTing my offer to ${url} (attempt ${attempt})`, "DEBUG");
                 response = await fetch(url, {
                     method: 'POST',
                     mode: 'cors',
@@ -127,14 +127,14 @@ const chan = (() => {
                         'offer': theOffer
                     })
                 });
-                logger(`POST ${url}: ${response.statusText}`);
+                logger(`POST ${url}: ${response.statusText}`, "DEBUG");
                 if (response.ok) {
-                    logger(`response ok`);
+                    logger(`response ok`, "DEBUG");
                     break;
                 }
                 if (response.status == 408) {
                     // retry here and don't leak the WebRTC connection (resuse it)!
-                    logger(`retry`);
+                    logger(`retry`, "DEBUG");
                     attempt += 1;
                     continue;
                 }
@@ -145,30 +145,30 @@ const chan = (() => {
         };
         return postOffer()
             .then(data => {
-                logger(`got answer: JSON for ${url}: ${data}`);
+                logger(`got answer: JSON for ${url}: ${data}`, "DEBUG");
                 const v = JSON.parse(data.answer);
                 const answer = v.answer;
                 const candidates = v.candidates;
 
-                logger(`Answer: candidates: len(${JSON.stringify(candidates).length}) answer: len(${JSON.stringify(answer).length})`);
+                logger(`Answer: candidates: len(${JSON.stringify(candidates).length}) answer: len(${JSON.stringify(answer).length})`, "DEBUG");
 
                 con.setRemoteDescription(answer);
                 for (let i = 0; i < candidates.length; ++i) {
-                    con.addIceCandidate(candidates[i]).catch((e) => logger(`error adding ice candidate: ${e}`));
+                    con.addIceCandidate(candidates[i]).catch((e) => logger(`error adding ice candidate: ${e}`, "ERROR"));
                 }
             })
             .catch((e) => {
                 console.error(`posting offer error`, e);
-                logger(`posting offer error: ${e}`);
+                logger(`posting offer error: ${e}`, "ERROR");
             });
     };
 
 
     async function accept(logger: Logger, uid: string, selectRemotePeer: (us: string[]) => string, onChanReady: (chan: RTCDataChannel) => void): Promise<void> {
-        logger("-".repeat(72));
-        logger(`trying to accept something`);
+        logger("-".repeat(72), "DEBUG");
+        logger(`trying to accept something`, "DEBUG");
 
-        logger(`trying to fetch available offers`);
+        logger(`trying to fetch available offers`, "DEBUG");
         const uidRemote = await fetch(`${srv}/listoffers`, {
                 method: 'GET',
                 mode: 'cors',
@@ -187,21 +187,21 @@ const chan = (() => {
             })
             .then(data => {
                 const uids: string[] = data.uids
-                logger(`server has ${uids.length} offers: ${uids}`);
+                logger(`server has ${uids.length} offers: ${uids}`, "DEBUG");
 
                 // Don't connect to self, don't connect if we already have a connection to that peer.
                 return selectRemotePeer(uids);
             })
             .catch((e) => {
-                logger(`fetching offers error: ${e}`);
+                logger(`fetching offers error: ${e}`, "ERROR");
                 console.error(e);
             });
 
-        logger(`want to connect to ${uidRemote}`);
         if (!uidRemote) {
-            logger(`seems like no new offers are available, ...`);
+            logger(`seems like no new offers are available, ...`, "DEBUG");
             return
         }
+        logger(`want to connect to ${uidRemote}`, "INFO");
 
         const offer = await fetch(`${srv}/describeoffer?uid=${uidRemote}`, {
                 method: 'GET',
@@ -221,16 +221,16 @@ const chan = (() => {
             })
             .then(data => {
                 const offer = data.offer
-                logger(`retrieved offer of length ${offer.length}`);
+                logger(`retrieved offer of length ${offer.length}`, "DEBUG");
                 return offer
             })
             .catch((e) => {
-                logger(`fetching offer error: ${e}`);
+                logger(`fetching offer error: ${e}`, "ERROR");
                 console.error(e);
             });
 
         if (!offer) {
-            logger(`seems like the offers disappeared while we tried to accept it, ...`);
+            logger(`seems like the offers disappeared while we tried to accept it, ...`, "INFO");
             return
         }
 
@@ -239,10 +239,10 @@ const chan = (() => {
         const con = newRTCPeerConnection(logger);
         con.ondatachannel = function(event) {
             const chan = event.channel;
-            logger(`The channel should be open now: ${chan.readyState}`);
-            logger(`Connection state should be connected: ${con.connectionState}`);
+            logger(`The channel should be open now: ${chan.readyState}`, "DEBUG");
+            logger(`Connection state should be connected: ${con.connectionState}`, "DEBUG");
             if (chan.readyState != "open" || con.connectionState != "connected") {
-                logger("UNEXPECTED DATA CHANNEL STATE");
+                logger("UNEXPECTED DATA CHANNEL STATE", "ERROR");
                 //TODO: I should probably wait for c.onopen
                 return;
             }
@@ -252,11 +252,11 @@ const chan = (() => {
                 // yeah, if multiple channels are created for a single `con`, this check will fail.
             }
             chan.onclose = function(event) {
-                logger(`Send channel's status has changed to ${chan.readyState}`);
+                logger(`Send channel's status has changed to ${chan.readyState}`, "DEBUG");
                 // TODO: cleanup. Remove from list.
             };
             chan.onopen = function(event) {
-                logger(`Send channel's status has changed to ${chan.readyState}`);
+                logger(`Send channel's status has changed to ${chan.readyState}`, "DEBUG");
                 logger("Sending a Howdy!");
                 chan.send(JSON.stringify({
                     setPeerName: uid,
@@ -271,31 +271,31 @@ const chan = (() => {
             .then(v => {
                 const candidates = v.candidates;
                 const offer = v.offer;
-                logger(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`);
+                logger(`From ${uidRemote} got candidates: len(${JSON.stringify(candidates).length}) offer: len(${JSON.stringify(offer).length})`, "DEBUG");
 
                 con.setRemoteDescription(offer);
                 for (let c of candidates) {
                     con.addIceCandidate(c)
-                        .then(() => logger(`candidate from remote added`))
-                        .catch((e) => logger(`error adding ice candidate: ${e}`));
+                        .then(() => logger(`candidate from remote added`, "DEBUG"))
+                        .catch((e) => logger(`error adding ice candidate: ${e}`, "ERROR"));
                 };
 
                 return con.createAnswer();
             })
             .then(answer => {
-                logger("answer created");
+                logger("answer created", "DEBUG");
                 con.setLocalDescription(answer);
                 return answer;
             })
             .catch((e) => {
-                logger(`processing answer failed: ${e}`);
+                logger(`processing answer failed: ${e}`, "DEBUG");
                 console.error(e);
             });
         const theAnswer = {
             candidates: await candidatesPromise,
             answer: answer,
         };
-        logger(`have the answer: ${theAnswer}`);
+        logger(`have the answer: ${theAnswer}`, "DEBUG");
 
         fetch(`${srv}/accept`, {
                 method: 'POST',
@@ -310,8 +310,8 @@ const chan = (() => {
                     'answer': theAnswer,
                 })
             })
-            .then(response => logger(`POSTing answer: ${response}, ok:${response.ok}, status:${response.statusText}`))
-            .catch((e) => logger(`POSTing accept error: ${e}`));
+            .then(response => logger(`POSTing answer: ${response}, ok:${response.ok}, status:${response.statusText}`, "DEBUG"))
+            .catch((e) => logger(`POSTing accept error: ${e}`, "ERROR"));
     };
 
     return {

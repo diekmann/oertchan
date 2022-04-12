@@ -33,7 +33,7 @@ class UserIdentity {
             ).then(key => {
                 return key;
             });
-        logger(`created key type ${key.publicKey.algorithm.name}`);
+        logger(`created key type ${key.publicKey.algorithm.name}`, "DEBUG");
         const uidHash = await window.crypto.subtle.exportKey(
             "spki", //can be "jwk" (public or private), "spki" (public only), or "pkcs8" (private only)
             key.publicKey
@@ -95,21 +95,21 @@ class Chans<C extends ÖChan> {
 
     private incomingMessage(logger: Logger, handler: IncomingMessageHandler<C>, chan: C) {
         return (event: MessageEvent) => {
-            logger(`handling received message from ${Chans.peerName(chan)}`);
+            logger(`handling received message from ${Chans.peerName(chan)}`, "INFO");
             let d;
             try {
                 d = JSON.parse(event.data);
             } catch (e) {
-                logger(`From ${Chans.peerName(chan)}, unparsable: ${event.data}`);
+                logger(`From ${Chans.peerName(chan)}, unparsable: ${event.data}`, "WARNING");
                 return;
             }
 
             // authenticity? LOL! but we leak your IP anyways.
             if ('setPeerName' in d) {
                 if ('peerName' in chan && chan.peerName != d.setPeerName) {
-                    logger(`ERROR: trying to rename ${chan.peerName} to ${d.setPeerName}. But renaming is not allowed.`);
+                    logger(`ERROR: trying to rename ${chan.peerName} to ${d.setPeerName}. But renaming is not allowed.`, "ERROR");
                 } else {
-                    logger(`peer ${Chans.peerName(chan)} is now know as ${d.setPeerName}.`);
+                    logger(`peer ${Chans.peerName(chan)} is now know as ${d.setPeerName}.`, "INFO");
                     chan.peerName = d.setPeerName;
                     handler.peerName(d.setPeerName, chan);
                 }

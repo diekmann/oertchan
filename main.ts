@@ -14,15 +14,29 @@ function appendHTML(to: HTMLElement, text: HTMLElement): void {
     }
 }
 
-function logTo(logArea: HTMLDivElement, txt: string) {
-    const t = document.createElement("span");
+function logTo(logArea: HTMLDivElement, txt: string, level: LogLevel) {
+    const t = <HTMLSpanElement>document.createElement("span");
+    switch (level) {
+        case "DEBUG":
+            t.classList.add("logDEBUG");
+            break;
+        case "INFO":
+            t.classList.add("logINFO");
+            break;
+        case "WARNING":
+            t.classList.add("logWARNING");
+            break;
+        case "ERROR":
+            t.classList.add("logERROR");
+            break;
+    }
     t.appendChild(document.createTextNode(txt));
     appendHTML(logArea, t);
 };
 const logArea_generic  = <HTMLInputElement>document.getElementById("logarea_generic");
 
-function logTxt_generic(txt: string) {
-    logTo(logArea_generic, txt);
+function logTxt_generic(txt: string, level: LogLevel = "INFO") {
+    logTo(logArea_generic, txt, level);
 };
 
 
@@ -359,6 +373,6 @@ class MainÖChan implements ÖChan {
         }));
     };
 
-    chans.offerLoop((txt) => logTo(<HTMLInputElement>document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
-    chans.acceptLoop((txt) => logTo(<HTMLInputElement>document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
+    chans.offerLoop((txt, level: LogLevel = "INFO") => logTo(<HTMLInputElement>document.getElementById("logarea_offer"), txt, level), onChanReady, incomingMessageHandler);
+    chans.acceptLoop((txt, level: LogLevel = "INFO") => logTo(<HTMLInputElement>document.getElementById("logarea_accept"), txt, level), onChanReady, incomingMessageHandler);
 })();
