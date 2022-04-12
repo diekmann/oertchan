@@ -50,19 +50,9 @@ class ChatBox {
             // don't actually submit the HTML form, stay on the same page.
             event.preventDefault();
             const message = messageInputBox.value;
-            for (let c of this.chans.chans) {
-                console.log("sending a message to", c);
-                try {
-                    c.send(JSON.stringify({
-                        setPeerName: this.chans.myID(),
-                        message: message,
-                    }));
-                }
-                catch (error) {
-                    console.log("sending failed:", error);
-                }
-                ;
-            }
+            this.chans.broadcast(JSON.stringify({
+                message: message,
+            }));
             this.append(formatMessage(this.chans.myID(), parseMarkdown(ChatBox.formatLink(this.chans.loopbackChan), message)));
             // Clear the input box and re-focus it, so that we're
             // ready for the next message.
@@ -267,7 +257,6 @@ class MainÖChan {
                 case "/dm":
                     switch (request.method) {
                         case "GET":
-                            // Echo back
                             chan.send(JSON.stringify({
                                 response: {
                                     content: `Send me a private message.`,

@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Anonrelay server</title>
+    <meta charset="utf-8">
+    <script src="../jslib/adapter.js"></script>
+    <script src="../jslib/chan.js"></script>
+    <script src="../jslib/chans.js"></script>
+    <script src="../jslib/server.js"></script>
+</head>
+
+<body>
+    <h1>örtchan Anonrelay server</h1>
+    
+    
+    <div id="logger">Log messages will appear here<br></div>
+<script>
+"use strict";
+let theChans = null;
+
+const incomingMessageHandler = {
+    peerName: (peerName, chan) => undefined,
+    message: (peerName, chan, message) => {
+        logger(`got message from ${peerName}: ${message}`);
+    },
+    request: (peerName, chan, request) => {
+        if (request.url == "/relay") {
+            logger(`Request from ${peerName} to ${request.url}.`);
+            switch (request.method) {
+                case "GET":
+                    chan.send(JSON.stringify({
+                        response: {
+                            content: `What shall I relay for you?`,
+                            showPostForm: true,
+                        },
+                    }));
+                    break;
+                case "POST":
+                    // Echo back
+                    chan.send(JSON.stringify({
+                        response: {
+                            content: `${Chans.peerName(chan)}: ${request.content}`,
+                            showPostForm: true,
+                        },
+                    }));
+                    // Relay to public chat.
+                    theChans.broadcast(JSON.stringify({
+                        message: `[relayed] ${request.content}`,
+                    }));
+                    break;
+            }
+            return;
+        } else {
+            logger(`Request from ${peerName} to ${request.url} unhandled.`);
+        }
+    },
+    response: (peerName, chan, response) => {
+        logger(`response from ${peerName}: ${response}`);
+    },
+    default: (peerName, chan, data) => {
+        logger(`unknown contents from ${peerName}: ${JSON.stringify(d)}`);
+    },
+};
+
+const onChanReady = (chan) => {
+    chan.send(JSON.stringify({
+        message: `Anon Relay Server: [relay](/relay)!!`
+    }));
+};
+
+(async () => {
+    theChans = await serve(incomingMessageHandler, onChanReady);
+})();
+</script>
+</body>
+
+</html>
+

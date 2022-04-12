@@ -105,6 +105,18 @@ class Chans {
             }
         };
     }
+    broadcast(jsonmsg) {
+        for (let c of this.chans) {
+            console.log("sending a message to", c);
+            try {
+                c.send(jsonmsg);
+            }
+            catch (error) {
+                console.log("sending failed:", error);
+            }
+            ;
+        }
+    }
     registerChanAndReady(logger, onChanReady, incomingMessageHandler) {
         return (chan) => {
             const c = this.newC(chan);
