@@ -248,13 +248,13 @@ const peerList = (() => {
     return {
         insert: (chan: MainÖChan) => {
             const li = document.createElement("li");
-            li.innerText = `new chan ${chan.peerUID()}`;
+            li.innerText = `new chan ${chan.peerFullIdentity()}`;
             peerList.appendChild(li);
             chan.peerListEntry = li;
         },
         refresh: (chan: MainÖChan) => {
             const li = chan.peerListEntry;
-            li.innerText = `${chan.peerUID()}`;
+            li.innerText = `${chan.peerFullIdentity()}`;
             blink(chan);
         },
         blink: blink,
@@ -280,6 +280,7 @@ class MainÖChan extends ÖChan {
 
     const incomingMessageHandler: IncomingMessageHandler<MainÖChan> = {
         peerName: (peerName, chan) => {
+            console.log(`peer ${chan.peerFullIdentity()} is now verified.`)
             peerList.refresh(chan);
             // only now the chan should be treated as ready!
             // TODO: fix all servers!
@@ -305,7 +306,7 @@ class MainÖChan extends ÖChan {
                         case "GET":
                             chan.send(JSON.stringify({
                                 response: {
-                                    content: `Send me a private message.`,
+                                    content: `Use POST field below to send me private message.`,
                                     showPostForm: true,
                                 },
                             }));

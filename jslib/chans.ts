@@ -96,6 +96,7 @@ class PeerIdentity {
         this.uidHash = uidHash;
         this.pubKey = pubKey;
         this._displayName = displayName;
+        this.verified = false;
     }
 
     static async init(pubKey: CryptoKey, displayName: string): Promise<PeerIdentity> {
@@ -108,10 +109,10 @@ class PeerIdentity {
     
     // TODO: I also need to print the uidHashes, since this is the only verified thing. And resolve displayName collisions.
     displayName(): string {
-        if (this.verified) {
-            return this._displayName;
+        if (!this.verified) {
+            return `${this._displayName} (unverified)`;
         }
-        return `${this._displayName} (unverified)`;
+        return this._displayName;
     }
 
     private challenge: string;
@@ -160,10 +161,17 @@ class ÖChan {
     };
 
     peerUID(): string {
-        if (this.peerIdentity) {
-            return this.peerIdentity.uidHash;
+        if (!this.peerIdentity) {
+            return "???";
         }
-        return "???";
+        return this.peerIdentity.uidHash;
+    }
+
+    peerFullIdentity(): string {
+        if (!this.peerIdentity) {
+            return "??? (no handshake yet)";
+        }
+        return `uid (public key hash): ${this.peerIdentity.uidHash}; verified: ${this.peerIdentity.verified}; display name: ${this.peerIdentity.displayName()}`;
     }
 }
 
@@ -227,9 +235,8 @@ class Chans<C extends ÖChan> {
                     chan.send(JSON.stringify({
                         setPeerName: <SetPeerNameMessage>{response: response},
                     }));
-                    return;
                 } else if (m.response) {
-                    const verified = chan.peerIdentity.verifyResponse(m.response);
+                    const verified = await chan.peerIdentity.verifyResponse(m.response);
                     if (!verified) {
                         logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`)
                         return;
