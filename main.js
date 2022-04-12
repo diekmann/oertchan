@@ -293,7 +293,8 @@ class MainÖChan {
                 content = parseMarkdown(ChatBox.formatLink(chan), response.content);
             }
             else {
-                content = document.createTextNode(`could not understand response: ${JSON.stringify(response)}`);
+                content = document.createElement("span");
+                content.appendChild(document.createTextNode(`could not understand response: ${JSON.stringify(response)}`));
             }
             chan.peerBox.append(content);
             if (response.showPostForm) {
