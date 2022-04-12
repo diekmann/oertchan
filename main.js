@@ -1,10 +1,21 @@
 "use strict";
-function logTo(logArea, txt) {
-    const userHasScrolled = (logArea.scrollTop + logArea.offsetHeight < logArea.scrollHeight);
-    logArea.value += "\n" + txt;
+function appendHTML(to, text) {
+    const userHasScrolled = (to.scrollTop + to.offsetHeight < to.scrollHeight);
+    to.appendChild(text);
+    to.appendChild(document.createElement("br"));
     if (!userHasScrolled) {
-        logArea.scrollTop = logArea.scrollHeight;
+        to.scrollTop = to.scrollHeight;
+        //text.scrollIntoView({
+        //    behavior: "smooth",
+        //    block: "end",
+        //    inline: "nearest"
+        //});
     }
+}
+function logTo(logArea, txt) {
+    const t = document.createElement("span");
+    t.appendChild(document.createTextNode(txt));
+    appendHTML(logArea, t);
 }
 ;
 const logArea_generic = document.getElementById("logarea_generic");
@@ -54,13 +65,7 @@ class ChatBox {
             t = document.createElement("span");
             t.appendChild(document.createTextNode(content));
         }
-        this.elem.appendChild(t);
-        this.elem.appendChild(document.createElement("br"));
-        t.scrollIntoView({
-            behavior: "smooth",
-            block: "end",
-            inline: "nearest"
-        });
+        appendHTML(this.elem, t);
     }
     static formatLink(chan) {
         return (linkName, href) => {
@@ -172,13 +177,7 @@ class PeerBox {
         this.elemFooterForm = footerForm;
     }
     append(e) {
-        this.elemContent.appendChild(e);
-        this.elemContent.appendChild(document.createElement("br"));
-        e.scrollIntoView({
-            behavior: "smooth",
-            block: "end",
-            inline: "nearest"
-        });
+        appendHTML(this.elemContent, e);
     }
     setVisible() {
         this.elem.style.visibility = 'visible';
