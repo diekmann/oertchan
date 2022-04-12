@@ -160,7 +160,7 @@ const chan = (() => {
     };
 
 
-    async function accept(logger: Logger, uid: string, selectRemotePeer: (us: string[]) => string, onChanReady: (chan: RTCDataChannel) => void): Promise<void> {
+    async function accept(logger: Logger, selectRemotePeer: (us: string[]) => string, onChanReady: (chan: RTCDataChannel) => void): Promise<void> {
         logger("-".repeat(72), "DEBUG");
         logger(`trying to accept something`, "DEBUG");
 

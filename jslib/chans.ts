@@ -222,7 +222,7 @@ class Chans<C extends ÖChan> {
             const us = uids.filter(u => u != this.myID() && !this.chans.map(Chans.peerName).includes(u));
             return us[Math.floor(Math.random() * us.length)];
         };
-        await chan.accept(logger, this.myID(), selectRemotePeer, this.registerChanAndReady(logger, onChanReady, incomingMessageHandler));
+        await chan.accept(logger, selectRemotePeer, this.registerChanAndReady(logger, onChanReady, incomingMessageHandler));
         setTimeout(() => this.acceptLoop(logger, onChanReady, incomingMessageHandler), 5000)
     }
 }
