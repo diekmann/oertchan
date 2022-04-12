@@ -154,6 +154,17 @@ class Chans<C extends ÖChan> {
         };
     }
 
+    broadcast(jsonmsg: string){
+        for (let c of this.chans) {
+            console.log("sending a message to", c);
+            try {
+                c.send(jsonmsg);
+            } catch (error) {
+                console.log("sending failed:", error);
+            };
+        }
+    }
+
     private registerChanAndReady(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>): (chan: RTCDataChannel) => void {
         return (chan) => {
             const c: C = this.newC(chan);
