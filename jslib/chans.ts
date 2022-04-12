@@ -19,6 +19,11 @@ class UserIdentity {
         this.key = key;
     }
 
+    public static readonly algorithm: EcdsaParams = {
+        name: "ECDSA",
+        hash: {name: "SHA-384"},
+      };
+
     public uidHash: string;
     public key: CryptoKeyPair;
 
@@ -31,8 +36,7 @@ class UserIdentity {
                 name: "SHA-384"
             }, keydata);
         }).then(hash => {
-            const strHash = Array.from(new Uint8Array(hash)).map(i => i.toString(16).padStart(2, '0')).join('');
-            return strHash;
+            return UserIdentity.hexlify(hash);
         })
     }
 
@@ -52,19 +56,49 @@ class UserIdentity {
 
         return new UserIdentity(uidHash, key);
     }
+
+    static encode(txt: string): Uint8Array {
+        return new TextEncoder().encode(txt);
+    }
+    static hexlify(buf: ArrayBuffer): string {
+        return Array.from(new Uint8Array(buf)).map(i => i.toString(16).padStart(2, '0')).join('');
+    }
+    static unhexlify(hex: string): Uint8Array {
+        let result = new Uint8Array(hex.length/2); // TODO: what if wrong size?
+        for (let i=0, l=hex.length; i<l; i+=2) {
+            result[i/2] = parseInt(hex.slice(i, i+2), 16);
+        }
+        return result;
+    }
+
+    async responseForChallenge(challenge: string): Promise<string> {
+        const signature = await window.crypto.subtle.sign(
+            UserIdentity.algorithm,
+            this.key.privateKey,
+            UserIdentity.encode(challenge),
+          );
+        const x = UserIdentity.hexlify(signature);
+        console.log(`For challenge ${challenge}, created response ${x}`);
+        return x;
+    }
 }
 
 // TODO: use me
 class PeerIdentity {
-    public uidHash: string; // TODO: UserIdentity.uidHashFromPubKey
+    public uidHash: string;
     public pubKey: CryptoKey;
     private _displayName: string;
     public verified: boolean;
 
-    constructor(uidHash: string, pubKey: CryptoKey, displayName: string) {
+    private constructor(uidHash: string, pubKey: CryptoKey, displayName: string) {
         this.uidHash = uidHash;
         this.pubKey = pubKey;
         this._displayName = displayName;
+    }
+
+    static async init(pubKey: CryptoKey, displayName: string): Promise<PeerIdentity> {
+        const uidHash = await UserIdentity.uidHashFromPubKey(pubKey);
+        return new PeerIdentity(uidHash, pubKey, displayName);
     }
     
     displayName(): string {
@@ -76,8 +110,19 @@ class PeerIdentity {
 
     private challenge: string;
     generateChallenge(): string {
-        this.challenge = self.crypto.randomUUID() + ":" + this.uidHash + ":" + this._displayName ;
+        this.challenge = window.crypto.randomUUID() + ":" + this.uidHash + ":" + this._displayName ;
         return this.challenge;
+    }
+    async verifyResponse(response: string): Promise<boolean> {
+        let result = await window.crypto.subtle.verify(
+            UserIdentity.algorithm,
+            this.pubKey,
+            UserIdentity.unhexlify(response),
+            UserIdentity.encode(this.challenge)
+          );
+        console.log(`verifyResponse: `, result);
+        this.verified = result;
+        return result;
     }
 
 }

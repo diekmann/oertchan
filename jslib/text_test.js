@@ -1,10 +1,5 @@
 "use strict";
 
-// fake the chans object.
-const chans = {
-    peerName: (chan) => chan.peerName,
-}
-
 describe('text', function() {
     const buildLink = (linkName, href) => {
         let a = document.createElement('a');
