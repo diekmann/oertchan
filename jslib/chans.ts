@@ -82,7 +82,6 @@ class UserIdentity {
             UserIdentity.encode(challenge),
           );
         const x = UserIdentity.hexlify(signature);
-        console.log(`For challenge ${challenge}, created response ${x}`);
         return x;
     }
 }
@@ -184,7 +183,8 @@ class Chans<C extends ÖChan> {
     // TODO: remove, use ÖChan directly!
     static peerName(chan: ÖChan): string {
         if ('peerIdentity' in chan) {
-            return chan.peerIdentity.displayName();
+            return chan.peerIdentity.uidHash;
+            //return chan.peerIdentity.displayName();
         }
         return "???";
     }
@@ -222,16 +222,13 @@ class Chans<C extends ÖChan> {
                     chan.send(JSON.stringify({
                         setPeerName: <SetPeerNameMessage>{challenge: challenge},
                     }));
-                    return;
-                }
-                if (m.challenge) {
+                } else if (m.challenge) {
                     const response = await this.uid.responseForChallenge(m.challenge);
                     chan.send(JSON.stringify({
                         setPeerName: <SetPeerNameMessage>{response: response},
                     }));
                     return;
-                }
-                if (m.response) {
+                } else if (m.response) {
                     const verified = chan.peerIdentity.verifyResponse(m.response);
                     if (!verified) {
                         logger(`Failed to verify ${Chans.peerName(chan)}. Invalid repsonse.`)
