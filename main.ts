@@ -320,7 +320,7 @@ class MainÖChan extends ÖChan {
                                 },
                             }));
                             // Display somewhere.
-                            chatBox.append(formatMessage(`Private message from ${chan.peerUID()}`, document.createTextNode(request.content)));
+                            chatBox.append(formatMessage(`[Private Message] ${chan.peerUID()}`, document.createTextNode(request.content)));
                             break;
                     }
                     break;
