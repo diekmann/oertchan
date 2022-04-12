@@ -278,14 +278,21 @@ class MainÖChan implements ÖChan {
 
 // main
 (async () => {
-    const uid = await UserIdentity.create(logTxt_generic);
+    const uid = await UserIdentity.create(logTxt_generic, "Alice");
     const chans = new Chans(uid, (chan: RTCDataChannel) => new MainÖChan(chan));
     logTxt_generic(`My uid: ${chans.myID()}`)
 
     const chatBox = new ChatBox(chans);
 
     const incomingMessageHandler: IncomingMessageHandler<MainÖChan> = {
-        peerName: (peerName, chan) => peerList.refresh(chan),
+        peerName: (peerName, chan) => {
+            peerList.refresh(chan);
+            // only now the chan should be treated as ready!
+            // TODO: fix all servers!
+            chan.send(JSON.stringify({
+                message: `Check out [this cool link](/index)!!`
+            }));
+        },
 
         message: (peerName, chan, message) => {
             chatBox.append(formatMessage(peerName, parseMarkdown(ChatBox.formatLink(chan), message)));
@@ -359,10 +366,6 @@ class MainÖChan implements ÖChan {
 
         peerList.insert(chan);
         peerList.refresh(chan);
-
-        chan.send(JSON.stringify({
-            message: `Check out [this cool link](/index)!!`
-        }));
     };
 
     chans.offerLoop((txt, level: LogLevel = "INFO") => logTo(<HTMLInputElement>document.getElementById("logarea_offer"), txt, level), onChanReady, incomingMessageHandler);

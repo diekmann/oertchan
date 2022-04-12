@@ -14,18 +14,24 @@ type IncomingMessageHandler<C> = {
 
 // TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
 class UserIdentity {
-    private constructor(uidHash: string, key: CryptoKeyPair){
+    private constructor(uidHash: string, key: CryptoKeyPair, displayName: string){
         this.uidHash = uidHash;
         this.key = key;
+        this.displayName = displayName;
     }
 
     public static readonly algorithm: EcdsaParams = {
         name: "ECDSA",
         hash: {name: "SHA-384"},
       };
+    public static readonly pkAlgorithm: EcKeyGenParams = {
+        name: "ECDSA",
+        namedCurve: "P-521", // Are there no other curve and how do I market this now as PQ?
+    };
 
-    public uidHash: string;
-    public key: CryptoKeyPair;
+    public readonly displayName: string;
+    public readonly uidHash: string;
+    public readonly key: CryptoKeyPair;
 
     static async uidHashFromPubKey(pk: CryptoKey): Promise<string> {
         return window.crypto.subtle.exportKey(
@@ -41,11 +47,9 @@ class UserIdentity {
     }
 
     // construct an object, async.
-    static async create(logger: Logger) {
-        const key = await window.crypto.subtle.generateKey({
-                    name: "ECDSA",
-                    namedCurve: "P-521", // Are there no other curve and how do I market this now as PQ?
-                },
+    static async create(logger: Logger, displayName: string) {
+        const key = await window.crypto.subtle.generateKey(
+                UserIdentity.pkAlgorithm,
                 false, // not extractable
                 ["sign", "verify"]
             ).then(key => {
@@ -54,7 +58,7 @@ class UserIdentity {
         logger(`created key type ${key.publicKey.algorithm.name}`, "DEBUG");
         const uidHash = await UserIdentity.uidHashFromPubKey(key.publicKey);
 
-        return new UserIdentity(uidHash, key);
+        return new UserIdentity(uidHash, key, displayName);
     }
 
     static encode(txt: string): Uint8Array {
@@ -101,6 +105,7 @@ class PeerIdentity {
         return new PeerIdentity(uidHash, pubKey, displayName);
     }
     
+    // TODO: I also need to print the uidHashes, since this is the only verified thing. And resolve displayName collisions.
     displayName(): string {
         if (this.verified) {
             return this._displayName;
@@ -128,11 +133,25 @@ class PeerIdentity {
 }
 
 
+// TODO: use me
+type SetPeerNameMessage = {
+    initial?: {
+        pubKey: string; // hexlified spki
+        displayName: string; // user-chosen untrusted string
+    };
+    challenge?: string;
+    response?: string;
+    
+}
+
+
 interface ÖChan  {
     // TODO: how do I model monkey patching in TypeScript
     //private thePeerName?: string;
     //setPeerName(pn: string): void;
-    peerName?: string;
+    //peerName?: string;
+
+    peerIdentity?: PeerIdentity;
 
     // RTCDataChannel.send
     send: (data: string) => void;
@@ -164,14 +183,14 @@ class Chans<C extends ÖChan> {
 
     // TODO: remove, use ÖChan directly!
     static peerName(chan: ÖChan): string {
-        if ('peerName' in chan) {
-            return chan.peerName;
+        if ('peerIdentity' in chan) {
+            return chan.peerIdentity.displayName();
         }
         return "???";
     }
 
     private incomingMessage(logger: Logger, handler: IncomingMessageHandler<C>, chan: C) {
-        return (event: MessageEvent) => {
+        return async (event: MessageEvent) => {
             logger(`handling received message from ${Chans.peerName(chan)}`, "INFO");
             let d;
             try {
@@ -183,12 +202,43 @@ class Chans<C extends ÖChan> {
 
             // authenticity? LOL! but we leak your IP anyways.
             if ('setPeerName' in d) {
-                if ('peerName' in chan && chan.peerName != d.setPeerName) {
-                    logger(`ERROR: trying to rename ${chan.peerName} to ${d.setPeerName}. But renaming is not allowed.`, "ERROR");
-                } else {
-                    logger(`peer ${Chans.peerName(chan)} is now know as ${d.setPeerName}.`, "INFO");
-                    chan.peerName = d.setPeerName;
-                    handler.peerName(d.setPeerName, chan);
+                const m = <SetPeerNameMessage>d.setPeerName;
+                if ('peerIdentity' in chan && m.initial) {
+                    logger(`ERROR: trying to rename ${chan.peerIdentity.displayName()}. But renaming is not allowed.`, "ERROR");
+                    return;
+                }
+                if (m.initial) {
+                    const pk = await window.crypto.subtle.importKey(
+                        'spki',
+                        UserIdentity.unhexlify(m.initial.pubKey),
+                        UserIdentity.pkAlgorithm,
+                        true,
+                        ['verify']
+                    );
+                    const remotePeer = await PeerIdentity.init(pk, m.initial.displayName);
+                    chan.peerIdentity = remotePeer;
+                    const challenge = remotePeer.generateChallenge();
+                    logger(`peer is now claiming to be ${Chans.peerName(chan)}. Sending challenge to verify.`, "INFO");
+                    chan.send(JSON.stringify({
+                        setPeerName: <SetPeerNameMessage>{challenge: challenge},
+                    }));
+                    return;
+                }
+                if (m.challenge) {
+                    const response = await this.uid.responseForChallenge(m.challenge);
+                    chan.send(JSON.stringify({
+                        setPeerName: <SetPeerNameMessage>{response: response},
+                    }));
+                    return;
+                }
+                if (m.response) {
+                    const verified = chan.peerIdentity.verifyResponse(m.response);
+                    if (!verified) {
+                        logger(`Failed to verify ${Chans.peerName(chan)}. Invalid repsonse.`)
+                        return;
+                    }
+                    // now we are authenitcated.
+                    handler.peerName(d.setPeerName, chan); // TODO: remove first param, make sure chan has well-defined user identity
                 }
                 delete d.setPeerName;
             }
@@ -243,11 +293,20 @@ class Chans<C extends ÖChan> {
     }
 
     private registerChanAndReady(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>): (chan: RTCDataChannel) => void {
-        return (chan) => {
+        return async (chan) => {
             const c: C = this.newC(chan);
             this.chans.push(c);
             chan.onmessage = this.incomingMessage(logger, incomingMessageHandler, c);
-            logger("Sending a Howdy!", "INFO");
+            const pk = await window.crypto.subtle.exportKey('spki', this.uid.key.publicKey);
+            chan.send(JSON.stringify({
+                setPeerName: <SetPeerNameMessage>{
+                    initial: {
+                        displayName: this.uid.displayName,
+                        pubKey: UserIdentity.hexlify(pk),
+                    },
+                },
+            }));
+            logger("Sending a Howdy! (we are likely nor yet verified)", "INFO");
             chan.send(JSON.stringify({
                 setPeerName: this.myID(),
                 message: `Howdy! ${this.myID()} just connected by providing you an offer.`
@@ -264,6 +323,7 @@ class Chans<C extends ÖChan> {
     async acceptLoop(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
         // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
         const selectRemotePeer = (uids: string[]): string => {
+            // TODO: need to preserve the UID here!!!!!!
             const us = uids.filter(u => u != this.myID() && !this.chans.map(Chans.peerName).includes(u));
             return us[Math.floor(Math.random() * us.length)];
         };

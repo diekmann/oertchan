@@ -13,7 +13,7 @@ const logger = (txt: string) => {
 };
 
 async function serve(handler: IncomingMessageHandler<RTCDataChannel>, onChanReady: (chan: RTCDataChannel) => void): Promise<Chans<RTCDataChannel>> {
-    const uid = await UserIdentity.create(logger);
+    const uid = await UserIdentity.create(logger, "server");
     const chans = new Chans(uid, chan => chan);
     chans.offerLoop(logger, onChanReady, handler);
     chans.acceptLoop(logger, onChanReady, handler);
