@@ -214,34 +214,39 @@ const peerList = (() => {
     return {
         insert: (chan) => {
             const li = document.createElement("li");
-            li.innerText = `new chan ${Chans.peerName(chan)}`;
+            li.innerText = `new chan ${chan.peerFullIdentity()}`;
             peerList.appendChild(li);
             chan.peerListEntry = li;
         },
         refresh: (chan) => {
             const li = chan.peerListEntry;
-            li.innerText = `${Chans.peerName(chan)}`;
+            li.innerText = `${chan.peerFullIdentity()}`;
             blink(chan);
         },
         blink: blink,
     };
 })();
-class MainÖChan {
+class MainÖChan extends ÖChan {
     constructor(c) {
-        this.chan = c;
-    }
-    send(data) {
-        return this.chan.send(data);
+        super(c);
     }
 }
 // main
 (async () => {
-    const uid = await UserIdentity.create(logTxt_generic);
+    const uid = await UserIdentity.create(logTxt_generic, "Alice");
     const chans = new Chans(uid, (chan) => new MainÖChan(chan));
     logTxt_generic(`My uid: ${chans.myID()}`);
     const chatBox = new ChatBox(chans);
     const incomingMessageHandler = {
-        peerName: (peerName, chan) => peerList.refresh(chan),
+        peerName: (peerName, chan) => {
+            console.log(`peer ${chan.peerFullIdentity()} is now verified.`);
+            peerList.refresh(chan);
+            // only now the chan should be treated as ready!
+            // TODO: fix all servers!
+            chan.send(JSON.stringify({
+                message: `Check out [this cool link](/index)!!`
+            }));
+        },
         message: (peerName, chan, message) => {
             chatBox.append(formatMessage(peerName, parseMarkdown(ChatBox.formatLink(chan), message)));
         },
@@ -250,7 +255,7 @@ class MainÖChan {
                 case "/index":
                     chan.send(JSON.stringify({
                         response: {
-                            content: `Hello, my name is ${chans.myID()}. Nice talking to you, ${Chans.peerName(chan)}. [Send me a private message](/dm).`,
+                            content: `Hello, my name is ${chans.myID()}. Nice talking to you, ${chan.peerUID()}. [Send me a private message](/dm).`,
                         },
                     }));
                     break;
@@ -259,7 +264,7 @@ class MainÖChan {
                         case "GET":
                             chan.send(JSON.stringify({
                                 response: {
-                                    content: `Send me a private message.`,
+                                    content: `Use POST field below to send me private message.`,
                                     showPostForm: true,
                                 },
                             }));
@@ -268,12 +273,12 @@ class MainÖChan {
                             // Echo back
                             chan.send(JSON.stringify({
                                 response: {
-                                    content: `${Chans.peerName(chan)}: ${request.content}`,
+                                    content: `${chan.peerUID()}: ${request.content}`,
                                     showPostForm: true,
                                 },
                             }));
                             // Display somewhere.
-                            chatBox.append(formatMessage(`Private message from ${Chans.peerName(chan)}`, document.createTextNode(request.content)));
+                            chatBox.append(formatMessage(`[Private Message] ${chan.peerUID()}`, document.createTextNode(request.content)));
                             break;
                     }
                     break;
@@ -313,9 +318,6 @@ class MainÖChan {
         chan.peerBox = new PeerBox(chan);
         peerList.insert(chan);
         peerList.refresh(chan);
-        chan.send(JSON.stringify({
-            message: `Check out [this cool link](/index)!!`
-        }));
     };
     chans.offerLoop((txt, level = "INFO") => logTo(document.getElementById("logarea_offer"), txt, level), onChanReady, incomingMessageHandler);
     chans.acceptLoop((txt, level = "INFO") => logTo(document.getElementById("logarea_accept"), txt, level), onChanReady, incomingMessageHandler);
