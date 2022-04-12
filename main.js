@@ -12,15 +12,29 @@ function appendHTML(to, text) {
         //});
     }
 }
-function logTo(logArea, txt) {
+function logTo(logArea, txt, level) {
     const t = document.createElement("span");
+    switch (level) {
+        case "DEBUG":
+            t.classList.add("logDEBUG");
+            break;
+        case "INFO":
+            t.classList.add("logINFO");
+            break;
+        case "WARNING":
+            t.classList.add("logWARNING");
+            break;
+        case "ERROR":
+            t.classList.add("logERROR");
+            break;
+    }
     t.appendChild(document.createTextNode(txt));
     appendHTML(logArea, t);
 }
 ;
 const logArea_generic = document.getElementById("logarea_generic");
-function logTxt_generic(txt) {
-    logTo(logArea_generic, txt);
+function logTxt_generic(txt, level = "INFO") {
+    logTo(logArea_generic, txt, level);
 }
 ;
 // The ChatBox handles broadcasted gosspied messages and is a global chat.
@@ -313,6 +327,6 @@ class MainÖChan {
             message: `Check out [this cool link](/index)!!`
         }));
     };
-    chans.offerLoop((txt) => logTo(document.getElementById("logarea_offer"), txt), onChanReady, incomingMessageHandler);
-    chans.acceptLoop((txt) => logTo(document.getElementById("logarea_accept"), txt), onChanReady, incomingMessageHandler);
+    chans.offerLoop((txt, level = "INFO") => logTo(document.getElementById("logarea_offer"), txt, level), onChanReady, incomingMessageHandler);
+    chans.acceptLoop((txt, level = "INFO") => logTo(document.getElementById("logarea_accept"), txt, level), onChanReady, incomingMessageHandler);
 })();
