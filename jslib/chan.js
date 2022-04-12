@@ -51,7 +51,8 @@ const chan = (() => {
                         logger("empty candidate", "WARNING");
                         return;
                     }
-                    logger(`ICE candidate ${c.protocol} ${c.address}:${c.port}`, "DEBUG");
+                    const addressUbuntu204tsc383Workaround = c.address;
+                    logger(`ICE candidate ${c.protocol} ${addressUbuntu204tsc383Workaround}:${c.port}`, "DEBUG");
                     candidates.push(c);
                 }
                 else {

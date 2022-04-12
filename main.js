@@ -207,9 +207,9 @@ const peerList = (() => {
     const peerList = document.getElementById('peerList');
     const blink = (chan) => {
         const li = chan.peerListEntry;
-        li.style = "";
+        li.style.removeProperty("animation");
         void li.offsetWidth; // DOM reflow
-        li.style = "animation: blink-blue 1s;";
+        li.style.animation = "blink-blue 1s";
     };
     return {
         insert: (chan) => {
