@@ -86,11 +86,6 @@ const chan = (() => {
         };
         chan.onopen = function(event) {
             logger(`Send channel's status has changed to ${chan.readyState}`, "DEBUG");
-            logger("Sending a Howdy!", "INFO");
-            chan.send(JSON.stringify({
-                setPeerName: uid,
-                message: `Howdy! ${uid} just connected by providing you an offer.`
-            }));
             onChanReady(chan);
         };
 
@@ -258,11 +253,6 @@ const chan = (() => {
             };
             chan.onopen = function(event) {
                 logger(`Send channel's status has changed to ${chan.readyState}`, "DEBUG");
-                logger("Sending a Howdy!");
-                chan.send(JSON.stringify({
-                    setPeerName: uid,
-                    message: `Howdy! ${uid} just connected by accepting your offer.`
-                }));
                 onChanReady(chan);
             };
         };

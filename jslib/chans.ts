@@ -170,6 +170,11 @@ class Chans<C extends ÖChan> {
             const c: C = this.newC(chan);
             this.chans.push(c);
             chan.onmessage = this.incomingMessage(logger, incomingMessageHandler, c);
+            logger("Sending a Howdy!", "INFO");
+            chan.send(JSON.stringify({
+                setPeerName: this.myID(),
+                message: `Howdy! ${this.myID()} just connected by providing you an offer.`
+            }));
             onChanReady(c);
         };
     }
