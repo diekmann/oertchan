@@ -261,18 +261,12 @@ const peerList = (() => {
     };
 })();
 
-class MainÖChan implements ÖChan {
-    private chan: RTCDataChannel;
-
+class MainÖChan extends ÖChan {
     public peerBox: PeerBox;
     public peerListEntry: HTMLLIElement;
 
     constructor(c: RTCDataChannel){
-        this.chan = c;
-    }
-
-    send(data: string): void {
-        return this.chan.send(data);
+        super(c);
     }
 }
 

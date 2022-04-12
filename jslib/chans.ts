@@ -86,7 +86,6 @@ class UserIdentity {
     }
 }
 
-// TODO: use me
 class PeerIdentity {
     public uidHash: string;
     public pubKey: CryptoKey;
@@ -102,6 +101,9 @@ class PeerIdentity {
     static async init(pubKey: CryptoKey, displayName: string): Promise<PeerIdentity> {
         const uidHash = await UserIdentity.uidHashFromPubKey(pubKey);
         return new PeerIdentity(uidHash, pubKey, displayName);
+    }
+    static unknown(): PeerIdentity {
+        return null
     }
     
     // TODO: I also need to print the uidHashes, since this is the only verified thing. And resolve displayName collisions.
@@ -144,16 +146,22 @@ type SetPeerNameMessage = {
 }
 
 
-interface ÖChan  {
-    // TODO: how do I model monkey patching in TypeScript
-    //private thePeerName?: string;
-    //setPeerName(pn: string): void;
-    //peerName?: string;
+class ÖChan {
+    // warning, this may be an unknown PeerIdentity, i.e. null!
+    public peerIdentity: PeerIdentity;
 
-    peerIdentity?: PeerIdentity;
+    public readonly chan: RTCDataChannel;
+
+    constructor(c: RTCDataChannel){
+        this.chan = c;
+    }
+
+    // TODO: constructor
 
     // RTCDataChannel.send
-    send: (data: string) => void;
+    send(data: string): void {
+        return this.chan.send(data);
+    };
 
     //private chan: RTCDataChannel;
 }
@@ -182,7 +190,7 @@ class Chans<C extends ÖChan> {
 
     // TODO: remove, use ÖChan directly!
     static peerName(chan: ÖChan): string {
-        if ('peerIdentity' in chan) {
+        if (chan.peerIdentity) {
             return chan.peerIdentity.uidHash;
             //return chan.peerIdentity.displayName();
         }
@@ -203,7 +211,7 @@ class Chans<C extends ÖChan> {
             // authenticity? LOL! but we leak your IP anyways.
             if ('setPeerName' in d) {
                 const m = <SetPeerNameMessage>d.setPeerName;
-                if ('peerIdentity' in chan && m.initial) {
+                if (chan.peerIdentity && m.initial) {
                     logger(`ERROR: trying to rename ${chan.peerIdentity.displayName()}. But renaming is not allowed.`, "ERROR");
                     return;
                 }
@@ -292,6 +300,7 @@ class Chans<C extends ÖChan> {
     private registerChanAndReady(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>): (chan: RTCDataChannel) => void {
         return async (chan) => {
             const c: C = this.newC(chan);
+            c.peerIdentity = PeerIdentity.unknown();
             this.chans.push(c);
             chan.onmessage = this.incomingMessage(logger, incomingMessageHandler, c);
             const pk = await window.crypto.subtle.exportKey('spki', this.uid.key.publicKey);
@@ -320,7 +329,6 @@ class Chans<C extends ÖChan> {
     async acceptLoop(logger: Logger, onChanReady: (chan: C) => void, incomingMessageHandler: IncomingMessageHandler<C>) {
         // Don't connect to self, don't connect if we already have a connection to that peer, and pick on remote peer at random.
         const selectRemotePeer = (uids: string[]): string => {
-            // TODO: need to preserve the UID here!!!!!!
             const us = uids.filter(u => u != this.myID() && !this.chans.map(Chans.peerName).includes(u));
             return us[Math.floor(Math.random() * us.length)];
         };

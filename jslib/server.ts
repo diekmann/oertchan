@@ -12,15 +12,15 @@ const logger = (txt: string) => {
     elem.appendChild(document.createElement("br"));
 };
 
-async function serve(handler: IncomingMessageHandler<RTCDataChannel>, onChanReady: (chan: RTCDataChannel) => void): Promise<Chans<RTCDataChannel>> {
+async function serve(handler: IncomingMessageHandler<ÖChan>, onChanReady: (chan: ÖChan) => void): Promise<Chans<ÖChan>> {
     const origPeerNameHandler = handler.peerName;
     handler.peerName = (peerName, chan) => {
         origPeerNameHandler(peerName, chan);
         onChanReady(chan);
     };
     const uid = await UserIdentity.create(logger, "server");
-    const chans = new Chans(uid, chan => chan);
-    const doNothingOnChanReady = (chan: RTCDataChannel) => {};
+    const chans = new Chans(uid, chan => new ÖChan(chan));
+    const doNothingOnChanReady = (chan: ÖChan) => {};
     chans.offerLoop(logger, doNothingOnChanReady, handler);
     chans.acceptLoop(logger, doNothingOnChanReady, handler);
     return chans;
