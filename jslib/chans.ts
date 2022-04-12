@@ -22,7 +22,21 @@ class UserIdentity {
     public uidHash: string;
     public key: CryptoKeyPair;
 
-    // construct an onject, async.
+    static async uidHashFromPubKey(pk: CryptoKey): Promise<string> {
+        return window.crypto.subtle.exportKey(
+            "spki", //can be "jwk" (public or private), "spki" (public only), or "pkcs8" (private only)
+            pk
+        ).then(keydata => {
+            return window.crypto.subtle.digest({
+                name: "SHA-384"
+            }, keydata);
+        }).then(hash => {
+            const strHash = Array.from(new Uint8Array(hash)).map(i => i.toString(16).padStart(2, '0')).join('');
+            return strHash;
+        })
+    }
+
+    // construct an object, async.
     static async create(logger: Logger) {
         const key = await window.crypto.subtle.generateKey({
                     name: "ECDSA",
@@ -34,20 +48,38 @@ class UserIdentity {
                 return key;
             });
         logger(`created key type ${key.publicKey.algorithm.name}`, "DEBUG");
-        const uidHash = await window.crypto.subtle.exportKey(
-            "spki", //can be "jwk" (public or private), "spki" (public only), or "pkcs8" (private only)
-            key.publicKey
-        ).then(keydata => {
-            return window.crypto.subtle.digest({
-                name: "SHA-384"
-            }, keydata);
-        }).then(hash => {
-            const strHash = Array.from(new Uint8Array(hash)).map(i => i.toString(16).padStart(2, '0')).join('');
-            return strHash;
-        });
+        const uidHash = await UserIdentity.uidHashFromPubKey(key.publicKey);
 
         return new UserIdentity(uidHash, key);
     }
+}
+
+// TODO: use me
+class PeerIdentity {
+    public uidHash: string; // TODO: UserIdentity.uidHashFromPubKey
+    public pubKey: CryptoKey;
+    private _displayName: string;
+    public verified: boolean;
+
+    constructor(uidHash: string, pubKey: CryptoKey, displayName: string) {
+        this.uidHash = uidHash;
+        this.pubKey = pubKey;
+        this._displayName = displayName;
+    }
+    
+    displayName(): string {
+        if (this.verified) {
+            return this._displayName;
+        }
+        return `${this._displayName} (unverified)`;
+    }
+
+    private challenge: string;
+    generateChallenge(): string {
+        this.challenge = self.crypto.randomUUID() + ":" + this.uidHash + ":" + this._displayName ;
+        return this.challenge;
+    }
+
 }
 
 
