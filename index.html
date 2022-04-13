@@ -122,6 +122,25 @@
             background-color: cornflowerblue;
         }
 
+        .tooltippable {
+            position: relative;
+            border-bottom: 1px solid blue;
+        }
+        .tooltippable .tooltip {
+            visibility: hidden;
+            background-color: coral;
+            color: black;
+            z-index: 1;
+            position: absolute;
+            top: 150%;
+            left: 10%;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .tooltippable:hover .tooltip {
+            visibility: visible;
+        }
+
         @keyframes blink-blue {
             50% {
                 font-weight: bold;

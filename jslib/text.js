@@ -62,6 +62,14 @@ function parseMarkdown(buildLink, md) {
     }
     return t;
 }
+function formatMessageHTML(prefix, user, message) {
+    let t = document.createElement("span");
+    t.appendChild(document.createTextNode(prefix));
+    t.appendChild(user);
+    t.appendChild(document.createTextNode(": "));
+    t.appendChild(message);
+    return t;
+}
 function formatMessage(from, message) {
     let t = document.createElement("span");
     t.appendChild(document.createTextNode(`From ${from}: `));

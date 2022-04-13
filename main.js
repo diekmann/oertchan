@@ -247,8 +247,9 @@ class MainÖChan extends ÖChan {
                 message: `Check out [this cool link](/index)!!`
             }));
         },
+        // TODO: get rid of the peerName, we have the chan with an identity!
         message: (peerName, chan, message) => {
-            chatBox.append(formatMessage(peerName, parseMarkdown(ChatBox.formatLink(chan), message)));
+            chatBox.append(formatMessageHTML("From: ", chan.peerDisplayNameHTML(), parseMarkdown(ChatBox.formatLink(chan), message)));
         },
         request: (peerName, chan, request) => {
             switch (request.url) {
