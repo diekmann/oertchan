@@ -95,12 +95,21 @@ function parseMarkdown(buildLink: (linkName: string, href: string) => HTMLAnchor
     return t;
 }
 
+function formatMessageHTML(prefix: string, user: HTMLSpanElement, message: Text | HTMLElement) {
+    let t = document.createElement("span");
+    t.appendChild(document.createTextNode(prefix));
+    t.appendChild(user);
+    t.appendChild(document.createTextNode(": "));
+    t.appendChild(message);
+    return t;
+}
 function formatMessage(from: string, message: Text | HTMLElement) {
     let t = document.createElement("span");
     t.appendChild(document.createTextNode(`From ${from}: `));
     t.appendChild(message);
     return t;
 }
+
 
 
 // format a relative URL absolute wrt the chan. Pretty printing only.

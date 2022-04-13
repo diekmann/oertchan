@@ -115,6 +115,18 @@ class PeerIdentity {
         return this._displayName;
     }
 
+    // TODO: factor out tooltip function
+    displayNameHTML(): HTMLSpanElement {
+        const s = document.createElement('span');
+        s.classList.add('tooltippable');
+        s.innerText = this.displayName();
+        const tip = document.createElement('span');
+        tip.classList.add('tooltip');
+        tip.innerText = this.uidHash
+        s.appendChild(tip);
+        return s;
+    }
+
     private challenge: string;
     generateChallenge(): string {
         this.challenge = window.crypto.randomUUID() + ":" + this.uidHash + ":" + this._displayName ;
@@ -165,6 +177,15 @@ class ÖChan {
             return "???";
         }
         return this.peerIdentity.uidHash;
+    }
+
+    peerDisplayNameHTML(): HTMLSpanElement {
+        if (!this.peerIdentity) {
+            const s = document.createElement('span')
+            s.innerText = '???'
+            return s;
+        }
+        return this.peerIdentity.displayNameHTML();
     }
 
     peerFullIdentity(): string {
