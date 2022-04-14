@@ -35,7 +35,7 @@ describe('chans', function() {
 
         it('valid challenge response run', async function() {
             const Alice = await UserIdentity.create(logger);
-            const whatAliceClaims = await PeerIdentity.init(Alice.key.publicKey, "Alice");
+            const whatAliceClaims = await PeerIdentity.init(Alice.key.publicKey, "Alice", []);
             const challenge = whatAliceClaims.generateChallenge();
             const response = await Alice.responseForChallenge(challenge);
             const result = await whatAliceClaims.verifyResponse(response);
@@ -44,7 +44,7 @@ describe('chans', function() {
 
         it('invalid challenge response run', async function() {
             let Alice = await UserIdentity.create(logger);
-            const whatAliceClaims = await PeerIdentity.init(Alice.key.publicKey, "Alice");
+            const whatAliceClaims = await PeerIdentity.init(Alice.key.publicKey, "Alice", []);
             const challenge = whatAliceClaims.generateChallenge();
             Alice = await UserIdentity.create(logger); //  re-initializing Alice, destroying original key, so challenge must fail
             const response = await Alice.responseForChallenge(challenge);
@@ -54,7 +54,7 @@ describe('chans', function() {
 
         it('invalid response', async function() {
             let Alice = await UserIdentity.create(logger);
-            const whatAliceClaims = await PeerIdentity.init(Alice.key.publicKey, "Alice");
+            const whatAliceClaims = await PeerIdentity.init(Alice.key.publicKey, "Alice", []);
             const challenge = whatAliceClaims.generateChallenge();
             const response = ''; // invalid response
             const result = await whatAliceClaims.verifyResponse(response);
@@ -62,11 +62,30 @@ describe('chans', function() {
         });
         it('invalid response 2', async function() {
             let Alice = await UserIdentity.create(logger);
-            const whatAliceClaims = await PeerIdentity.init(Alice.key.publicKey, "Alice");
+            const whatAliceClaims = await PeerIdentity.init(Alice.key.publicKey, "Alice", []);
             const challenge = whatAliceClaims.generateChallenge();
             const response = '00b662f1039a8d44f7b558d2715ea9ce0fc4f211f6a65782d57c3bfbe4b066fdcd27595b0f7658c6fd021f0ea8608717f5239ea58c3cea7d7f34682790d14728cf7c00e2826bae78a7a36df461d9abcabea2c3479c508bf3ff6946af9db98a238a8a4ce4a2c7c39adb67ec56c9b3803c676390db55db95a63effb6f87b76016b840424be'; // wrong response
             const result = await whatAliceClaims.verifyResponse(response);
             assert.strictEqual(result, false);
+        });
+    });
+
+    describe('display name', function() {
+        it('uniqueDisplayName no collision', function() {
+            const dn = PeerIdentity.uniqueDisplayName('1234', 'Alice', []);
+            assert.strictEqual(dn, 'Alice');
+        });
+        it('uniqueDisplayName 1 collision', function() {
+            const dn = PeerIdentity.uniqueDisplayName('1234', 'Alice', ['Alice']);
+            assert.strictEqual(dn, 'Alice1');
+        });
+        it('uniqueDisplayName 2 collision', function() {
+            const dn = PeerIdentity.uniqueDisplayName('1234', 'Alice', ['Alice1', 'Alice']);
+            assert.strictEqual(dn, 'Alice12');
+        });
+        it('uniqueDisplayName 3 collision', function() {
+            const dn = PeerIdentity.uniqueDisplayName('1234', 'Alice', ['Alice', 'Alice12', 'Alice1']);
+            assert.strictEqual(dn, 'Alice123');
         });
     });
 });

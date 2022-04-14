@@ -12,7 +12,7 @@ type IncomingMessageHandler<C> = {
 };
 
 
-// TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
+// My identity.
 class UserIdentity {
     private constructor(uidHash: string, key: CryptoKeyPair, displayName: string){
         this.uidHash = uidHash;
@@ -86,6 +86,7 @@ class UserIdentity {
     }
 }
 
+// Remote identity.
 class PeerIdentity {
     public uidHash: string;
     public pubKey: CryptoKey;
@@ -99,12 +100,21 @@ class PeerIdentity {
         this.verified = false; // whether remote is authenticated via challenge response.
     }
 
-    static async init(pubKey: CryptoKey, displayName: string): Promise<PeerIdentity> {
+    static async init(pubKey: CryptoKey, displayName: string, alreadyExistingDisplayNames: string[]): Promise<PeerIdentity> {
         const uidHash = await UserIdentity.uidHashFromPubKey(pubKey);
-        return new PeerIdentity(uidHash, pubKey, displayName);
+        return new PeerIdentity(uidHash, pubKey, PeerIdentity.uniqueDisplayName(uidHash, displayName, alreadyExistingDisplayNames));
     }
     static unknown(): PeerIdentity {
         return null
+    }
+
+    // display names are untrusted data. But we try to have the locally unique per instance (but not globally unique).
+    private static uniqueDisplayName(suffixPool: string, proposedDisplayName: string, alreadyExistingDisplayNames: string[]): string {
+        let dn = proposedDisplayName;
+        for (let cnt = 0; alreadyExistingDisplayNames.includes(dn); ++cnt) {
+            dn = proposedDisplayName + suffixPool.slice(0, cnt);
+        }
+        return dn;
     }
     
     // TODO: I also need to print the uidHashes, since this is the only verified thing. And resolve displayName collisions.
@@ -112,6 +122,10 @@ class PeerIdentity {
         if (!this.verified) {
             return `${this._displayName} (unverified)`;
         }
+        return this._displayName;
+    }
+
+    rawDisplayName(): string {
         return this._displayName;
     }
 
@@ -230,6 +244,16 @@ class Chans<C extends ÖChan> {
         return this.uid.uidHash;
     }
 
+    private knownDisplayNames(): string[] {
+        let res: string[] = []
+        for (let c of this.chans) {
+            if (c.peerIdentity) {
+                res.push(c.peerIdentity.rawDisplayName());
+            }
+        }
+        return res;
+    }
+
     private incomingMessage(logger: Logger, handler: IncomingMessageHandler<C>, chan: C) {
         return async (event: MessageEvent) => {
             logger(`handling received message from ${chan.peerUID()}`, "INFO");
@@ -261,7 +285,7 @@ class Chans<C extends ÖChan> {
                         true,
                         ['verify']
                     );
-                    const remotePeer = await PeerIdentity.init(pk, m.initial.displayName);
+                    const remotePeer = await PeerIdentity.init(pk, m.initial.displayName, this.knownDisplayNames());
                     chan.peerIdentity = remotePeer;
                     const challenge = remotePeer.generateChallenge();
                     logger(`peer is now claiming to be ${chan.peerUID()}. Sending challenge to verify.`, "INFO");
