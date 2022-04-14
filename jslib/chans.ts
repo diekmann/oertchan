@@ -117,7 +117,6 @@ class PeerIdentity {
         return dn;
     }
     
-    // TODO: I also need to print the uidHashes, since this is the only verified thing. And resolve displayName collisions.
     displayName(): string {
         if (!this.verified) {
             return `${this._displayName} (unverified)`;
