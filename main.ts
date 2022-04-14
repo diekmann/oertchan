@@ -279,8 +279,9 @@ class MainÖChan extends ÖChan {
     const chatBox = new ChatBox(chans);
 
     const incomingMessageHandler: IncomingMessageHandler<MainÖChan> = {
-        peerName: (peerName, chan) => {
-            console.log(`peer ${chan.peerFullIdentity()} is now verified.`)
+        mutuallyAuthenticated: (peerName, chan) => {
+            console.log(`peer ${chan.peerFullIdentity()} is now verified. `+
+                `And we also sent our challenge: ${chan.authStatus.selfResponseSent}. Chan is ordered: ${chan.chan.ordered}.`)
             peerList.refresh(chan);
             // only now the chan should be treated as ready!
             // TODO: fix all servers!

@@ -4,7 +4,7 @@
 
 
 type IncomingMessageHandler<C> = {
-    peerName: (peerName: string, chan: C) => void,
+    mutuallyAuthenticated: (peerName: string, chan: C) => void,
     message: (peerName: string, chan: C, message: any) => void,
     request: (peerName: string, chan: C, request: any) => void,
     response: (peerName: string, chan: C, response: any) => void,
@@ -96,7 +96,7 @@ class PeerIdentity {
         this.uidHash = uidHash;
         this.pubKey = pubKey;
         this._displayName = displayName;
-        this.verified = false;
+        this.verified = false; // whether remote is authenticated via challenge response.
     }
 
     static async init(pubKey: CryptoKey, displayName: string): Promise<PeerIdentity> {
@@ -160,11 +160,23 @@ type SetPeerNameMessage = {
 class ÖChan {
     // warning, this may be an unknown PeerIdentity, i.e. null!
     public peerIdentity: PeerIdentity;
+    public authStatus: {
+        selfResponseSent: boolean // whether we have sent our response to remote's challenge.
+    };
 
     public readonly chan: RTCDataChannel;
 
     constructor(c: RTCDataChannel){
         this.chan = c;
+        this.authStatus = {selfResponseSent: false};
+    }
+
+
+    mutuallyAuthenticated(): boolean {
+        if (!this.peerIdentity) {
+            return false;
+        }
+        return this.peerIdentity.verified && this.authStatus.selfResponseSent;
     }
 
     // RTCDataChannel.send
@@ -236,6 +248,11 @@ class Chans<C extends ÖChan> {
                     logger(`ERROR: trying to rename ${chan.peerIdentity.displayName()}. But renaming is not allowed.`, "ERROR");
                     return;
                 }
+                const onMutuallyAuthenticated = () => {
+                    if (chan.mutuallyAuthenticated()) {
+                        handler.mutuallyAuthenticated(chan.peerUID(), chan); // TODO: remove first param, make sure chan has well-defined user identity
+                    }
+                }
                 if (m.initial) {
                     const pk = await window.crypto.subtle.importKey(
                         'spki',
@@ -256,14 +273,17 @@ class Chans<C extends ÖChan> {
                     chan.send(JSON.stringify({
                         setPeerName: <SetPeerNameMessage>{response: response},
                     }));
+                    chan.authStatus.selfResponseSent = true;
+                    // we should now be authenitcated - given remote accepts our response.
+                    onMutuallyAuthenticated();
                 } else if (m.response) {
                     const verified = await chan.peerIdentity.verifyResponse(m.response);
                     if (!verified) {
                         logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`)
                         return;
                     }
-                    // now we are authenitcated.
-                    handler.peerName(d.setPeerName, chan); // TODO: remove first param, make sure chan has well-defined user identity
+                    // remote is now authenitcated.
+                    onMutuallyAuthenticated();
                 }
                 delete d.setPeerName;
             }

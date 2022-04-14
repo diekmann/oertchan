@@ -13,8 +13,8 @@ const logger = (txt: string) => {
 };
 
 async function serve(handler: IncomingMessageHandler<ÖChan>, onChanReady: (chan: ÖChan) => void): Promise<Chans<ÖChan>> {
-    const origPeerNameHandler = handler.peerName;
-    handler.peerName = (peerName, chan) => {
+    const origPeerNameHandler = handler.mutuallyAuthenticated;
+    handler.mutuallyAuthenticated = (peerName, chan) => {
         origPeerNameHandler(peerName, chan);
         onChanReady(chan);
     };
