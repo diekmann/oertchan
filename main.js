@@ -53,7 +53,7 @@ class ChatBox {
             this.chans.broadcast(JSON.stringify({
                 message: message,
             }));
-            this.append(formatMessage(this.chans.myID(), parseMarkdown(ChatBox.formatLink(this.chans.loopbackChan), message)));
+            this.append(formatMessage(this.chans.myID().slice(0, 4) + "...(myself)", parseMarkdown(ChatBox.formatLink(this.chans.loopbackChan), message)));
             // Clear the input box and re-focus it, so that we're
             // ready for the next message.
             messageInputBox.value = "";
@@ -242,8 +242,6 @@ class MainÖChan extends ÖChan {
             console.log(`peer ${chan.peerFullIdentity()} is now verified. ` +
                 `And we also sent our challenge: ${chan.authStatus.selfResponseSent}. Chan is ordered: ${chan.chan.ordered}.`);
             peerList.refresh(chan);
-            // only now the chan should be treated as ready!
-            // TODO: fix all servers!
             chan.send(JSON.stringify({
                 message: `Check out [this cool link](/index)!!`
             }));
@@ -280,7 +278,7 @@ class MainÖChan extends ÖChan {
                                 },
                             }));
                             // Display somewhere.
-                            chatBox.append(formatMessage(`[Private Message] ${chan.peerUID()}`, document.createTextNode(request.content)));
+                            chatBox.append(formatMessageHTML(`[Private Message] From: `, chan.peerDisplayNameHTML(), document.createTextNode(request.content)));
                             break;
                     }
                     break;
