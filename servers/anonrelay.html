@@ -20,13 +20,13 @@
 let theChans = null;
 
 const incomingMessageHandler = {
-    peerName: (peerName, chan) => undefined,
-    message: (peerName, chan, message) => {
-        logger(`got message from ${peerName}: ${message}`);
+    mutuallyAuthenticated: (chan) => undefined,
+    message: (chan, message) => {
+        logger(`got message from ${chan.peerUID()}: ${message}`);
     },
-    request: (peerName, chan, request) => {
+    request: (chan, request) => {
         if (request.url == "/relay") {
-            logger(`Request from ${peerName} to ${request.url}.`);
+            logger(`Request from ${chan.peerUID()} to ${request.url}.`);
             switch (request.method) {
                 case "GET":
                     chan.send(JSON.stringify({
@@ -40,7 +40,7 @@ const incomingMessageHandler = {
                     // Echo back
                     chan.send(JSON.stringify({
                         response: {
-                            content: `${Chans.peerName(chan)}: ${request.content}`,
+                            content: `${chan.peerUID()}: ${request.content}`,
                             showPostForm: true,
                         },
                     }));
@@ -52,14 +52,14 @@ const incomingMessageHandler = {
             }
             return;
         } else {
-            logger(`Request from ${peerName} to ${request.url} unhandled.`);
+            logger(`Request from ${chan.peerUID()} to ${request.url} unhandled.`);
         }
     },
-    response: (peerName, chan, response) => {
-        logger(`response from ${peerName}: ${response}`);
+    response: (chan, response) => {
+        logger(`response from ${chan.peerUID()}: ${response}`);
     },
-    default: (peerName, chan, data) => {
-        logger(`unknown contents from ${peerName}: ${JSON.stringify(d)}`);
+    default: (chan, data) => {
+        logger(`unknown contents from ${chan.peerUID()}: ${JSON.stringify(d)}`);
     },
 };
 

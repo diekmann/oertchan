@@ -18,11 +18,11 @@
 <script>
 "use strict";
 const incomingMessageHandler = {
-    peerName: (peerName, chan) => undefined,
-    message: (peerName, chan, message) => {
-        logger(`got message from ${peerName}: ${message}`);
+    mutuallyAuthenticated: (chan) => undefined,
+    message: (chan, message) => {
+        logger(`got message from ${chan.peerUID()}: ${message}`);
     },
-    request: (peerName, chan, request) => {
+    request: (chan, request) => {
         if (request.url == "/ping") {
             chan.send(JSON.stringify({
                 response: {
@@ -31,11 +31,11 @@ const incomingMessageHandler = {
             }));
             }
     },
-    response: (peerName, chan, response) => {
-        logger(`response from ${peerName}: ${response}`);
+    response: (chan, response) => {
+        logger(`response from ${chan.peerUID()}: ${response}`);
     },
-    default: (peerName, chan, data) => {
-        logger(`unknown contents from ${peerName}: ${JSON.stringify(d)}`);
+    default: (chan, data) => {
+        logger(`unknown contents from ${chan.peerUID()}: ${JSON.stringify(d)}`);
     },
 };
 

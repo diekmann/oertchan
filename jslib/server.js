@@ -12,8 +12,8 @@ const logger = (txt) => {
 };
 async function serve(handler, onChanReady) {
     const origPeerNameHandler = handler.mutuallyAuthenticated;
-    handler.mutuallyAuthenticated = (peerName, chan) => {
-        origPeerNameHandler(peerName, chan);
+    handler.mutuallyAuthenticated = (chan) => {
+        origPeerNameHandler(chan);
         onChanReady(chan);
     };
     const uid = await UserIdentity.create(logger, "server");

@@ -188,7 +188,7 @@ class Chans {
                 }
                 const onMutuallyAuthenticated = () => {
                     if (chan.mutuallyAuthenticated()) {
-                        handler.mutuallyAuthenticated(chan.peerUID(), chan); // TODO: remove first param, make sure chan has well-defined user identity
+                        handler.mutuallyAuthenticated(chan);
                     }
                 };
                 if (m.initial) {
@@ -230,9 +230,8 @@ class Chans {
                 }
                 delete d.setPeerName;
             }
-            const pn = chan.peerUID(); // TODO: inline below?
             if ('message' in d) {
-                handler.message(pn, chan, d.message);
+                handler.message(chan, d.message);
                 delete d.message;
             }
             if ('request' in d) {
@@ -251,16 +250,16 @@ class Chans {
                     }));
                 }
                 else {
-                    handler.request(pn, chan, d.request);
+                    handler.request(chan, d.request);
                 }
                 delete d.request;
             }
             if ('response' in d) {
-                handler.response(pn, chan, d.response);
+                handler.response(chan, d.response);
                 delete d.response;
             }
             if (Object.keys(d).length > 0) {
-                handler.default(pn, chan, d);
+                handler.default(chan, d);
             }
         };
     }

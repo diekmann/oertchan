@@ -238,7 +238,7 @@ class MainÖChan extends ÖChan {
     logTxt_generic(`My uid: ${chans.myID()}`);
     const chatBox = new ChatBox(chans);
     const incomingMessageHandler = {
-        mutuallyAuthenticated: (peerName, chan) => {
+        mutuallyAuthenticated: (chan) => {
             console.log(`peer ${chan.peerFullIdentity()} is now verified. ` +
                 `And we also sent our challenge: ${chan.authStatus.selfResponseSent}. Chan is ordered: ${chan.chan.ordered}.`);
             peerList.refresh(chan);
@@ -249,10 +249,10 @@ class MainÖChan extends ÖChan {
             }));
         },
         // TODO: get rid of the peerName, we have the chan with an identity!
-        message: (peerName, chan, message) => {
+        message: (chan, message) => {
             chatBox.append(formatMessageHTML("From: ", chan.peerDisplayNameHTML(), parseMarkdown(ChatBox.formatLink(chan), message)));
         },
-        request: (peerName, chan, request) => {
+        request: (chan, request) => {
             switch (request.url) {
                 case "/index":
                     chan.send(JSON.stringify({
@@ -292,7 +292,7 @@ class MainÖChan extends ÖChan {
                     }));
             }
         },
-        response: (peerName, chan, response) => {
+        response: (chan, response) => {
             peerList.blink(chan);
             // TODO: check that the peerBox is visible.
             let content;
@@ -311,8 +311,8 @@ class MainÖChan extends ÖChan {
                 chan.peerBox.postFormHidden();
             }
         },
-        default: (peerName, chan, data) => {
-            chatBox.append(formatMessage(peerName, document.createTextNode(`unknown contents: ${JSON.stringify(data)}`)));
+        default: (chan, data) => {
+            chatBox.append(formatMessage(chan.peerUID(), document.createTextNode(`unknown contents: ${JSON.stringify(data)}`)));
         },
     };
     const onChanReady = (chan) => {
