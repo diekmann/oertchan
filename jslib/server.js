@@ -11,8 +11,8 @@ const logger = (txt) => {
     elem.appendChild(document.createElement("br"));
 };
 async function serve(handler, onChanReady) {
-    const origPeerNameHandler = handler.peerName;
-    handler.peerName = (peerName, chan) => {
+    const origPeerNameHandler = handler.mutuallyAuthenticated;
+    handler.mutuallyAuthenticated = (peerName, chan) => {
         origPeerNameHandler(peerName, chan);
         onChanReady(chan);
     };
