@@ -1,5 +1,5 @@
 "use strict";
-// TODO: this should be the new way to generate a UID. At least, it can be proven that one is who they claim to be via some challenge.
+// My identity.
 class UserIdentity {
     constructor(uidHash, key, displayName) {
         this.uidHash = uidHash;
@@ -53,6 +53,7 @@ UserIdentity.pkAlgorithm = {
     name: "ECDSA",
     namedCurve: "P-521", // Are there no other curve and how do I market this now as PQ?
 };
+// Remote identity.
 class PeerIdentity {
     constructor(uidHash, pubKey, displayName) {
         this.uidHash = uidHash;
@@ -60,18 +61,29 @@ class PeerIdentity {
         this._displayName = displayName;
         this.verified = false; // whether remote is authenticated via challenge response.
     }
-    static async init(pubKey, displayName) {
+    static async init(pubKey, displayName, alreadyExistingDisplayNames) {
         const uidHash = await UserIdentity.uidHashFromPubKey(pubKey);
-        return new PeerIdentity(uidHash, pubKey, displayName);
+        return new PeerIdentity(uidHash, pubKey, PeerIdentity.uniqueDisplayName(uidHash, displayName, alreadyExistingDisplayNames));
     }
     static unknown() {
         return null;
+    }
+    // display names are untrusted data. But we try to have the locally unique per instance (but not globally unique).
+    static uniqueDisplayName(suffixPool, proposedDisplayName, alreadyExistingDisplayNames) {
+        let dn = proposedDisplayName;
+        for (let cnt = 0; alreadyExistingDisplayNames.includes(dn); ++cnt) {
+            dn = proposedDisplayName + suffixPool.slice(0, cnt);
+        }
+        return dn;
     }
     // TODO: I also need to print the uidHashes, since this is the only verified thing. And resolve displayName collisions.
     displayName() {
         if (!this.verified) {
             return `${this._displayName} (unverified)`;
         }
+        return this._displayName;
+    }
+    rawDisplayName() {
         return this._displayName;
     }
     // TODO: factor out tooltip function
@@ -147,6 +159,15 @@ class Chans {
     myID() {
         return this.uid.uidHash;
     }
+    knownDisplayNames() {
+        let res = [];
+        for (let c of this.chans) {
+            if (c.peerIdentity) {
+                res.push(c.peerIdentity.rawDisplayName());
+            }
+        }
+        return res;
+    }
     incomingMessage(logger, handler, chan) {
         return async (event) => {
             logger(`handling received message from ${chan.peerUID()}`, "INFO");
@@ -172,7 +193,7 @@ class Chans {
                 };
                 if (m.initial) {
                     const pk = await window.crypto.subtle.importKey('spki', UserIdentity.unhexlify(m.initial.pubKey), UserIdentity.pkAlgorithm, true, ['verify']);
-                    const remotePeer = await PeerIdentity.init(pk, m.initial.displayName);
+                    const remotePeer = await PeerIdentity.init(pk, m.initial.displayName, this.knownDisplayNames());
                     chan.peerIdentity = remotePeer;
                     const challenge = remotePeer.generateChallenge();
                     logger(`peer is now claiming to be ${chan.peerUID()}. Sending challenge to verify.`, "INFO");
