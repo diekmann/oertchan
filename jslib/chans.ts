@@ -277,12 +277,21 @@ class Chans<C extends ÖChan> {
                     // we should now be authenitcated - given remote accepts our response.
                     onMutuallyAuthenticated();
                 } else if (m.response) {
+                    // TODO: is this a race condition?
+                    // given we receive the following ordered messages from a peer:
+                    // message 1) response for challenge
+                    // message 2) some random message
+                    // in theory, the peer should be authenticated after processing (1) and so message (2) should show as authenticated.
+                    // But could the two messages processed as follows?
+                    // a) start verifying response. Since this returns a promise, this execution pauses and the next thing gets scheduled.
+                    // b) start processing message (2). Since the peer is not yet authenticated, show message as unauthenticated.
+                    // c) the response from (a) gets the CPU again and remote is now verified.
                     const verified = await chan.peerIdentity.verifyResponse(m.response);
                     if (!verified) {
                         logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`)
                         return;
                     }
-                    // remote is now authenitcated.
+                    // remote is now authenticated.
                     onMutuallyAuthenticated();
                 }
                 delete d.setPeerName;
