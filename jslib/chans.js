@@ -236,7 +236,7 @@ class Chans {
                 delete d.setPeerName;
             }
             if ('message' in d) {
-                handler.message(chan, d.message);
+                handler.message(chan, d.message.toString());
                 delete d.message;
             }
             if ('request' in d) {
