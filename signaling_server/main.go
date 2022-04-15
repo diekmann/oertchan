@@ -45,7 +45,7 @@ func (s *Store) Keys() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	keys := make([]string, 0, len(s.content)) // return empty slize instead if nil for JSOn serialization.
+	keys := make([]string, 0, len(s.content)) // return empty slize instead if nil for JSON serialization.
 	for k, _ := range s.content {
 		keys = append(keys, k)
 	}

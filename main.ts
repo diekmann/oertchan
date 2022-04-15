@@ -280,8 +280,7 @@ class MainÖChan extends ÖChan {
 
     const incomingMessageHandler: IncomingMessageHandler<MainÖChan> = {
         mutuallyAuthenticated: (chan) => {
-            console.log(`peer ${chan.peerFullIdentity()} is now verified. `+
-                `And we also sent our challenge: ${chan.authStatus.selfResponseSent}. Chan is ordered: ${chan.chan.ordered}.`)
+            logTxt_generic(`peer ${chan.peerFullIdentity()} is now verified.`, "DEBUG");
             peerList.refresh(chan);
             chan.send(JSON.stringify({
                 message: `Check out [this cool link](/index)!!`

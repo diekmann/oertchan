@@ -164,8 +164,27 @@ type SetPeerNameMessage = {
         pubKey: string; // hexlified spki
         displayName: string; // user-chosen untrusted string
     };
+    // A              B
+    //    challenge
+    //  ------------->
+    //
+    //     response
+    // <--------------
+    //
+    //   acknowledge
+    //  ------------->
+    //                 ` Peer B is now authenticated to A.
+    //                   B may now speak and send messages.
+    //                   Since A verifies the response `async`
+    //                   (thanks WebCrypto API), we really
+    //                   have to add this acknowledge step to
+    //                   make sure we only speak once authenticated.
+    //
+    //   repeat all steps
+    //   the other way round
     challenge?: string;
     response?: string;
+    acknowledge: boolean;
     
 }
 
@@ -174,14 +193,14 @@ class ÖChan {
     // warning, this may be an unknown PeerIdentity, i.e. null!
     public peerIdentity: PeerIdentity;
     public authStatus: {
-        selfResponseSent: boolean // whether we have sent our response to remote's challenge.
+        selfAuthenticated: boolean // whether we have sent our response to remote's challenge and got an acknowledge.
     };
 
     public readonly chan: RTCDataChannel;
 
     constructor(c: RTCDataChannel){
         this.chan = c;
-        this.authStatus = {selfResponseSent: false};
+        this.authStatus = {selfAuthenticated: false};
     }
 
 
@@ -189,7 +208,7 @@ class ÖChan {
         if (!this.peerIdentity) {
             return false;
         }
-        return this.peerIdentity.verified && this.authStatus.selfResponseSent;
+        return this.peerIdentity.verified && this.authStatus.selfAuthenticated;
     }
 
     // RTCDataChannel.send
@@ -296,25 +315,20 @@ class Chans<C extends ÖChan> {
                     chan.send(JSON.stringify({
                         setPeerName: <SetPeerNameMessage>{response: response},
                     }));
-                    chan.authStatus.selfResponseSent = true;
-                    // we should now be authenitcated - given remote accepts our response.
-                    onMutuallyAuthenticated();
+                    // we should now be authenitcated - given remote accepts our response. Waiting for acknowledge.
                 } else if (m.response) {
-                    // TODO: is this a race condition?
-                    // given we receive the following ordered messages from a peer:
-                    // message 1) response for challenge
-                    // message 2) some random message
-                    // in theory, the peer should be authenticated after processing (1) and so message (2) should show as authenticated.
-                    // But could the two messages processed as follows?
-                    // a) start verifying response. Since this returns a promise, this execution pauses and the next thing gets scheduled.
-                    // b) start processing message (2). Since the peer is not yet authenticated, show message as unauthenticated.
-                    // c) the response from (a) gets the CPU again and remote is now verified.
                     const verified = await chan.peerIdentity.verifyResponse(m.response);
                     if (!verified) {
                         logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`)
                         return;
                     }
+                    chan.send(JSON.stringify({
+                        setPeerName: <SetPeerNameMessage>{acknowledge: true},
+                    }));
                     // remote is now authenticated.
+                    onMutuallyAuthenticated();
+                } else if (m.acknowledge) {
+                    chan.authStatus.selfAuthenticated = true;
                     onMutuallyAuthenticated();
                 }
                 delete d.setPeerName;
