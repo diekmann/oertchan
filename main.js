@@ -53,7 +53,7 @@ class ChatBox {
             this.chans.broadcast(JSON.stringify({
                 message: message,
             }));
-            this.append(formatMessage(this.chans.myID().slice(0, 4) + "...(myself)", parseMarkdown(ChatBox.formatLink(this.chans.loopbackChan), message)));
+            this.append(formatMessage(this.chans.loopbackChan.peerUID(), parseMarkdown(ChatBox.formatLink(this.chans.loopbackChan), message)));
             // Clear the input box and re-focus it, so that we're
             // ready for the next message.
             messageInputBox.value = "";

@@ -153,10 +153,12 @@ class Chans {
         this.chans = []; // connections to peers.
         this.uid = uid;
         this.newC = newC;
-        this.loopbackChan = {
-            peerName: this.myID(),
-            send: () => alert("please do not send to your loopback chan."),
-        };
+        this.loopbackChan = Object.assign(new ÖChan(null), {
+            send: (data) => alert("please do not send to your loopback chan."),
+            peerUID: () => uid.uidHash.slice(0, 4) + "...(myself)",
+            authStatus: { selfAuthenticated: true },
+            mutuallyAuthenticated: () => true,
+        });
     }
     // User ID
     myID() {
