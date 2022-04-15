@@ -60,4 +60,33 @@ It is literally that simple!
 Running a server in the browser? Yes!
 Is this a good idea? Well, ...
 
+## Architecture
 
+### Scalabilty
+
+With *n* clients, we need *O(n²)* connections.
+This is quite shit from a global point of view.
+
+Or phrasing it more neoliberally: With each client scaling linearly with the number of its peer connections, we enable each client to succeed up to its full potential.
+🤮
+
+### Proof of Work
+
+No, go away!
+
+### Proof of Stake
+
+Lol, no!
+
+### web3
+
+Sharing is caring!
+
+### Limitations
+
+The only limitations are in your browser.
+
+## Contributing
+
+No `npm`, no bloat, no external libraries unless vendored and you will be responsible for them.
+This is a thin tech demo. No extensive wrappers or build toolchains. Nothing which prevents running everything locally from `file://` URLs and a tiny `go run` for the signalling server.
