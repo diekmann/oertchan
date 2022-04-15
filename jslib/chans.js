@@ -111,6 +111,20 @@ class PeerIdentity {
         return result;
     }
 }
+// TODO: these should be classes so we can be sure the data is actually well-formed once given to the message handler!
+class RequestMessage {
+    constructor(url, method, content) {
+        this.url = url;
+        this.method = method;
+        this.content = content;
+    }
+}
+class ResponseMessage {
+    constructor(content, showPostForm) {
+        this.content = content;
+        this.showPostForm = showPostForm;
+    }
+}
 class ÖChan {
     constructor(c) {
         this.chan = c;
@@ -173,109 +187,155 @@ class Chans {
         }
         return res;
     }
+    static parseIncoming(logger, chan, data) {
+        let msg = {};
+        let d;
+        try {
+            d = JSON.parse(data);
+        }
+        catch (e) {
+            logger(`From ${chan.peerUID()}, unparsable: ${data}`, "WARNING");
+            return msg;
+        }
+        if (typeof d != "object" || d === null) {
+            logger(`From ${chan.peerUID()}, unparsable: ${data} did not return an object`, "WARNING");
+            return msg;
+        }
+        if (d.setPeerName) {
+            msg.setPeerName = {};
+            if (d.setPeerName.initial) {
+                msg.setPeerName.initial = d.setPeerName.initial;
+            }
+            if (d.setPeerName.challenge) {
+                msg.setPeerName.challenge = d.setPeerName.challenge;
+            }
+            if (d.setPeerName.response) {
+                msg.setPeerName.response = d.setPeerName.response;
+            }
+            if (d.setPeerName.acknowledge) {
+                msg.setPeerName.acknowledge = d.setPeerName.acknowledge;
+            }
+            delete d.setPeerName;
+        }
+        if (d.request) {
+            const method = d.request.method;
+            if (!d.request.url) {
+                chan.send(JSON.stringify({
+                    response: {
+                        content: `request: needs url`,
+                    },
+                }));
+                return msg;
+            }
+            if (method != "GET" && method != "POST") {
+                chan.send(JSON.stringify({
+                    response: {
+                        content: `request: unkown method "${method}"`,
+                    },
+                }));
+                return msg;
+            }
+            if (method == "POST" && !('content' in d.request)) {
+                chan.send(JSON.stringify({
+                    response: {
+                        content: `request: POST needs content`,
+                    },
+                }));
+                return msg;
+            }
+            let content = undefined;
+            if (d.request.content) {
+                content = d.request.content.toString();
+            }
+            msg.request = new RequestMessage(d.request.url.toString(), method, content);
+            delete d.request;
+        }
+        if (d.response) {
+            if (!d.response.content) {
+                chan.send(JSON.stringify({
+                    response: {
+                        content: `response: needs content`,
+                    },
+                }));
+                return msg;
+            }
+            msg.response = new ResponseMessage(d.response.content.toString(), d.response.showPostForm);
+            delete d.response;
+        }
+        if ('message' in d) {
+            msg.message = d.message.toString();
+            delete d.message;
+        }
+        if (Object.keys(d).length > 0) {
+            logger(`request contains unknown fields: ${JSON.stringify(d)}`, "WARNING");
+            //handler.default(chan, d); // TODO: I should just dummp this to the logger here and remove this API
+        }
+        return msg;
+    }
+    async handleSetPeerName(logger, chan, m, mutuallyAuthenticatedHandler) {
+        if (chan.peerIdentity && m.initial) {
+            logger(`ERROR: trying to rename ${chan.peerIdentity.displayName()}. But renaming is not allowed.`, "ERROR");
+            return;
+        }
+        const onMutuallyAuthenticated = () => {
+            if (chan.mutuallyAuthenticated()) {
+                logger(`We should now be mutually authenticated with ${chan.peerUID()}.`, "DEBUG");
+                mutuallyAuthenticatedHandler(chan);
+            }
+        };
+        if (m.initial) {
+            const pk = await window.crypto.subtle.importKey('spki', UserIdentity.unhexlify(m.initial.pubKey), UserIdentity.pkAlgorithm, true, ['verify']);
+            const remotePeer = await PeerIdentity.init(pk, m.initial.displayName, this.knownDisplayNames());
+            chan.peerIdentity = remotePeer;
+            const challenge = remotePeer.generateChallenge();
+            logger(`peer is now claiming to be ${chan.peerUID()}. Sending challenge to verify.`, "INFO");
+            chan.send(JSON.stringify({
+                setPeerName: { challenge: challenge },
+            }));
+        }
+        else if (m.challenge) {
+            const response = await this.uid.responseForChallenge(m.challenge);
+            chan.send(JSON.stringify({
+                setPeerName: { response: response },
+            }));
+            // we should now be authenitcated - given remote accepts our response. Waiting for acknowledge.
+        }
+        else if (m.response) {
+            if (!chan.peerIdentity) {
+                logger(`Received a response but don't have a peerIentity yet`, "ERROR");
+                return;
+            }
+            const verified = await chan.peerIdentity.verifyResponse(m.response);
+            if (!verified) {
+                logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`);
+                return;
+            }
+            chan.send(JSON.stringify({
+                setPeerName: { acknowledge: true },
+            }));
+            // remote is now authenticated.
+            onMutuallyAuthenticated();
+        }
+        else if (m.acknowledge) {
+            chan.authStatus.selfAuthenticated = true;
+            onMutuallyAuthenticated();
+        }
+    }
     incomingMessage(logger, handler, chan) {
         return async (event) => {
             logger(`handling received message from ${chan.peerUID()}`, "INFO");
-            let msg = {};
-            {
-                let d; // TODO: need a type-safe way if handling this untrusted user data!
-                try {
-                    d = JSON.parse(event.data);
-                }
-                catch (e) {
-                    logger(`From ${chan.peerUID()}, unparsable: ${event.data}`, "WARNING");
-                    return;
-                }
-                if (typeof d != "object" || d === null) {
-                    logger(`From ${chan.peerUID()}, unparsable: ${event.data} did not return an object`, "WARNING");
-                    return;
-                }
-                // TODO: recognize and sanitize!!!!
-                for (const field of ['setPeerName', 'message', 'request', 'response']) {
-                    msg[field] = d[field];
-                    delete d[field];
-                }
-                if (Object.keys(d).length > 0) {
-                    handler.default(chan, d); // TODO: I should just dummp this to the logger here and remove this API
-                }
-            }
+            const msg = Chans.parseIncoming(logger, chan, event.data);
             if (msg.setPeerName) {
-                const m = msg.setPeerName;
-                if (chan.peerIdentity && m.initial) {
-                    logger(`ERROR: trying to rename ${chan.peerIdentity.displayName()}. But renaming is not allowed.`, "ERROR");
-                    return;
-                }
-                const onMutuallyAuthenticated = () => {
-                    if (chan.mutuallyAuthenticated()) {
-                        handler.mutuallyAuthenticated(chan);
-                    }
-                };
-                if (m.initial) {
-                    const pk = await window.crypto.subtle.importKey('spki', UserIdentity.unhexlify(m.initial.pubKey), UserIdentity.pkAlgorithm, true, ['verify']);
-                    const remotePeer = await PeerIdentity.init(pk, m.initial.displayName, this.knownDisplayNames());
-                    chan.peerIdentity = remotePeer;
-                    const challenge = remotePeer.generateChallenge();
-                    logger(`peer is now claiming to be ${chan.peerUID()}. Sending challenge to verify.`, "INFO");
-                    chan.send(JSON.stringify({
-                        setPeerName: { challenge: challenge },
-                    }));
-                }
-                else if (m.challenge) {
-                    const response = await this.uid.responseForChallenge(m.challenge);
-                    chan.send(JSON.stringify({
-                        setPeerName: { response: response },
-                    }));
-                    // we should now be authenitcated - given remote accepts our response. Waiting for acknowledge.
-                }
-                else if (m.response) {
-                    if (!chan.peerIdentity) {
-                        logger(`Received a response but don't have a peerIentity yet`, "ERROR");
-                        return;
-                    }
-                    const verified = await chan.peerIdentity.verifyResponse(m.response);
-                    if (!verified) {
-                        logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`);
-                        return;
-                    }
-                    chan.send(JSON.stringify({
-                        setPeerName: { acknowledge: true },
-                    }));
-                    // remote is now authenticated.
-                    onMutuallyAuthenticated();
-                }
-                else if (m.acknowledge) {
-                    chan.authStatus.selfAuthenticated = true;
-                    onMutuallyAuthenticated();
-                }
-                delete msg.setPeerName;
+                this.handleSetPeerName(logger, chan, msg.setPeerName, handler.mutuallyAuthenticated);
             }
             if (msg.message) {
-                handler.message(chan, msg.message.toString());
-                delete msg.message;
+                handler.message(chan, msg.message);
             }
             if (msg.request) {
-                if (msg.request.method != "GET" && msg.request.method != "POST") {
-                    chan.send(JSON.stringify({
-                        response: {
-                            content: `request: unkown method "${msg.request.method}"`,
-                        },
-                    }));
-                }
-                else if (!msg.request.url) {
-                    chan.send(JSON.stringify({
-                        response: {
-                            content: `request: needs url`,
-                        },
-                    }));
-                }
-                else {
-                    handler.request(chan, msg.request);
-                }
-                delete msg.request;
+                handler.request(chan, msg.request);
             }
             if (msg.response) {
                 handler.response(chan, msg.response);
-                delete msg.response;
             }
         };
     }
