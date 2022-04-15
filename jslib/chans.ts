@@ -203,6 +203,13 @@ type ResponseMessage = {
     showPostForm?: boolean;
 }
 
+type IncomingMessage = {
+    setPeerName?: SetPeerNameMessage;
+    message?: string;
+    request?: RequestMessage;
+    response?: ResponseMessage;
+};
+
 
 class ÖChan {
     // warning, this may be an unknown PeerIdentity, i.e. null!
@@ -293,20 +300,34 @@ class Chans<C extends ÖChan> {
     private incomingMessage(logger: Logger, handler: IncomingMessageHandler<C>, chan: C) {
         return async (event: MessageEvent) => {
             logger(`handling received message from ${chan.peerUID()}`, "INFO");
-            let d: any; // TODO: need a type-safe way if handling this untrusted user data!
-            try {
-                d = JSON.parse(event.data);
-            } catch (e) {
-                logger(`From ${chan.peerUID()}, unparsable: ${event.data}`, "WARNING");
-                return;
-            }
-            if (typeof d != "object" || d === null) {
-                logger(`From ${chan.peerUID()}, unparsable: ${event.data} did not return an object`, "WARNING");
-                return;
+
+            let msg: IncomingMessage = {};
+            {
+                let d: unknown; // TODO: need a type-safe way if handling this untrusted user data!
+                try {
+                    d = JSON.parse(event.data);
+                } catch (e) {
+                    logger(`From ${chan.peerUID()}, unparsable: ${event.data}`, "WARNING");
+                    return;
+                }
+                if (typeof d != "object" || d === null) {
+                    logger(`From ${chan.peerUID()}, unparsable: ${event.data} did not return an object`, "WARNING");
+                    return;
+                }
+                
+                // TODO: recognize and sanitize!!!!
+                for (const field of ['setPeerName', 'message', 'request', 'response'] as const) {
+                    msg[field] = d[field];
+                    delete d[field];
+                }
+
+                if (Object.keys(d).length > 0) {
+                    handler.default(chan, d); // TODO: I should just dummp this to the logger here and remove this API
+                }
             }
 
-            if ('setPeerName' in d) {
-                const m = <SetPeerNameMessage>d.setPeerName;
+            if (msg.setPeerName) {
+                const m = msg.setPeerName;
                 if (chan.peerIdentity && m.initial) {
                     logger(`ERROR: trying to rename ${chan.peerIdentity.displayName()}. But renaming is not allowed.`, "ERROR");
                     return;
@@ -356,41 +377,36 @@ class Chans<C extends ÖChan> {
                     chan.authStatus.selfAuthenticated = true;
                     onMutuallyAuthenticated();
                 }
-                delete d.setPeerName;
+                delete msg.setPeerName;
             }
 
-            if ('message' in d) {
-                handler.message(chan, d.message.toString());
-                delete d.message;
+            if (msg.message) {
+                handler.message(chan, msg.message.toString());
+                delete msg.message;
             }
 
-
-            if ('request' in d) {
-                if (d.request.method != "GET" && d.request.method != "POST") {
+            if (msg.request) {
+                if (msg.request.method != "GET" && msg.request.method != "POST") {
                     chan.send(JSON.stringify({
                         response: {
-                            content: `request: unkown method "${d.request.method}"`,
+                            content: `request: unkown method "${msg.request.method}"`,
                         },
                     }));
-                } else if (!d.request.url) {
+                } else if (!msg.request.url) {
                     chan.send(JSON.stringify({
                         response: {
                             content: `request: needs url`,
                         },
                     }));
                 } else {
-                    handler.request(chan, d.request);
+                    handler.request(chan, msg.request);
                 }
-                delete d.request;
+                delete msg.request;
             }
 
-            if ('response' in d) {
-                handler.response(chan, d.response);
-                delete d.response;
-            }
-
-            if (Object.keys(d).length > 0) {
-                handler.default(chan, d);
+            if (msg.response) {
+                handler.response(chan, msg.response);
+                delete msg.response;
             }
         };
     }
