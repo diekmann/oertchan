@@ -5,9 +5,9 @@
 
 type IncomingMessageHandler<C> = {
     mutuallyAuthenticated: (chan: C) => void,
-    message: (chan: C, message: any) => void,
-    request: (chan: C, request: any) => void,
-    response: (chan: C, response: any) => void,
+    message: (chan: C, message: string) => void,
+    request: (chan: C, request: RequestMessage) => void,
+    response: (chan: C, response: ResponseMessage) => void,
     default: (chan: C, d: any) => void,
 };
 
@@ -189,7 +189,18 @@ type SetPeerNameMessage = {
     challenge?: string;
     response?: string;
     acknowledge: boolean;
-    
+}
+
+
+// TODO: these should be classes so we can be sure the data is actually well-formed once given to the message handler!
+type RequestMessage = {
+    url: string;
+    method: "GET" | "POST";
+    content: string;
+}
+type ResponseMessage = {
+    content: string;
+    showPostForm?: boolean;
 }
 
 
@@ -346,7 +357,7 @@ class Chans<C extends ÖChan> {
             }
 
             if ('message' in d) {
-                handler.message(chan, d.message);
+                handler.message(chan, d.message.toString());
                 delete d.message;
             }
 
