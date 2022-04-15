@@ -110,13 +110,13 @@ class PeerIdentity {
 class ÖChan {
     constructor(c) {
         this.chan = c;
-        this.authStatus = { selfResponseSent: false };
+        this.authStatus = { selfAuthenticated: false };
     }
     mutuallyAuthenticated() {
         if (!this.peerIdentity) {
             return false;
         }
-        return this.peerIdentity.verified && this.authStatus.selfResponseSent;
+        return this.peerIdentity.verified && this.authStatus.selfAuthenticated;
     }
     // RTCDataChannel.send
     send(data) {
@@ -205,26 +205,26 @@ class Chans {
                     chan.send(JSON.stringify({
                         setPeerName: { response: response },
                     }));
-                    chan.authStatus.selfResponseSent = true;
-                    // we should now be authenitcated - given remote accepts our response.
-                    onMutuallyAuthenticated();
+                    // we should now be authenitcated - given remote accepts our response. Waiting for acknowledge.
                 }
                 else if (m.response) {
-                    // TODO: is this a race condition?
-                    // given we receive the following ordered messages from a peer:
-                    // message 1) response for challenge
-                    // message 2) some random message
-                    // in theory, the peer should be authenticated after processing (1) and so message (2) should show as authenticated.
-                    // But could the two messages processed as follows?
-                    // a) start verifying response. Since this returns a promise, this execution pauses and the next thing gets scheduled.
-                    // b) start processing message (2). Since the peer is not yet authenticated, show message as unauthenticated.
-                    // c) the response from (a) gets the CPU again and remote is now verified.
+                    if (!chan.peerIdentity) {
+                        logger(`Received a response but don't have a peerIentity yet`, "ERROR");
+                        return;
+                    }
                     const verified = await chan.peerIdentity.verifyResponse(m.response);
                     if (!verified) {
                         logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`);
                         return;
                     }
+                    chan.send(JSON.stringify({
+                        setPeerName: { acknowledge: true },
+                    }));
                     // remote is now authenticated.
+                    onMutuallyAuthenticated();
+                }
+                else if (m.acknowledge) {
+                    chan.authStatus.selfAuthenticated = true;
                     onMutuallyAuthenticated();
                 }
                 delete d.setPeerName;
