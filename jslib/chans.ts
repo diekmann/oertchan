@@ -293,15 +293,18 @@ class Chans<C extends ÖChan> {
     private incomingMessage(logger: Logger, handler: IncomingMessageHandler<C>, chan: C) {
         return async (event: MessageEvent) => {
             logger(`handling received message from ${chan.peerUID()}`, "INFO");
-            let d;
+            let d: any; // TODO: need a type-safe way if handling this untrusted user data!
             try {
                 d = JSON.parse(event.data);
             } catch (e) {
                 logger(`From ${chan.peerUID()}, unparsable: ${event.data}`, "WARNING");
                 return;
             }
+            if (typeof d != "object" || d === null) {
+                logger(`From ${chan.peerUID()}, unparsable: ${event.data} did not return an object`, "WARNING");
+                return;
+            }
 
-            // authenticity? LOL! but we leak your IP anyways.
             if ('setPeerName' in d) {
                 const m = <SetPeerNameMessage>d.setPeerName;
                 if (chan.peerIdentity && m.initial) {
