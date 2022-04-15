@@ -47,9 +47,9 @@ class ChatBox {
     
     constructor(chans: Chans<MainÖChan>) {
         this.chans = chans;
-        this.elem = document.getElementById('chatBox');
+        this.elem = <HTMLElement>document.getElementById('chatBox');
 
-        const sendMessageForm = document.getElementById('sendMessageForm');
+        const sendMessageForm = <HTMLFormElement>document.getElementById('sendMessageForm');
         const messageInputBox = <HTMLInputElement>document.getElementById('inputmessage');
     
         // Handles clicks on the "Send" button by transmitting a message.
@@ -237,7 +237,7 @@ class PeerBox {
 }
 
 const peerList = (() => {
-    const peerList = document.getElementById('peerList');
+    const peerList = <HTMLUListElement>document.getElementById('peerList');
 
     const blink = (chan: MainÖChan) => {
         const li = chan.peerListEntry;

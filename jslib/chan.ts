@@ -53,7 +53,7 @@ const chan = (() => {
             const candidates: RTCIceCandidate[] = [];
             // Collect the ICE candidates.
             con.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
-                const c: RTCIceCandidate = event.candidate;
+                const c: RTCIceCandidate | null = event.candidate;
                 if (c) {
                     // Empty candidate signals end of candidates.
                     if (!c.candidate) {

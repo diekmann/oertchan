@@ -104,7 +104,7 @@ class PeerIdentity {
         const uidHash = await UserIdentity.uidHashFromPubKey(pubKey);
         return new PeerIdentity(uidHash, pubKey, PeerIdentity.uniqueDisplayName(uidHash, displayName, alreadyExistingDisplayNames));
     }
-    static unknown(): PeerIdentity {
+    static unknown(): PeerIdentity | null {
         return null
     }
 
@@ -191,7 +191,7 @@ type SetPeerNameMessage = {
 
 class ÖChan {
     // warning, this may be an unknown PeerIdentity, i.e. null!
-    public peerIdentity: PeerIdentity;
+    public peerIdentity: PeerIdentity | null;
     public authStatus: {
         selfAuthenticated: boolean // whether we have sent our response to remote's challenge and got an acknowledge.
     };
@@ -317,6 +317,10 @@ class Chans<C extends ÖChan> {
                     }));
                     // we should now be authenitcated - given remote accepts our response. Waiting for acknowledge.
                 } else if (m.response) {
+                    if (!chan.peerIdentity) {
+                        logger(`Received a response but don't have a peerIentity yet`, "ERROR");
+                        return;
+                    }
                     const verified = await chan.peerIdentity.verifyResponse(m.response);
                     if (!verified) {
                         logger(`Failed to verify ${chan.peerUID()}. Invalid repsonse.`)
