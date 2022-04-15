@@ -40,6 +40,7 @@ class UserIdentity {
         return result;
     }
     async responseForChallenge(challenge) {
+        // TODO: make sure we only sign stuff which looks like a challenge and not arbitrary strings.
         const signature = await window.crypto.subtle.sign(UserIdentity.algorithm, this.key.privateKey, UserIdentity.encode(challenge));
         const x = UserIdentity.hexlify(signature);
         return x;
@@ -101,6 +102,9 @@ class PeerIdentity {
         return this.challenge;
     }
     async verifyResponse(response) {
+        if (!this.challenge) {
+            throw new Error("cannot verify a response if there is no challenge.");
+        }
         let result = await window.crypto.subtle.verify(UserIdentity.algorithm, this.pubKey, UserIdentity.unhexlify(response), UserIdentity.encode(this.challenge));
         console.log(`verifyResponse: `, result);
         this.verified = result;

@@ -212,11 +212,11 @@ const peerList = (() => {
         li.style.animation = "blink-blue 1s";
     };
     return {
-        insert: (chan) => {
+        newEntry: (chan) => {
             const li = document.createElement("li");
             li.innerText = `new chan ${chan.peerFullIdentity()}`;
             peerList.appendChild(li);
-            chan.peerListEntry = li;
+            return li;
         },
         refresh: (chan) => {
             const li = chan.peerListEntry;
@@ -230,11 +230,17 @@ class MainÖChan extends ÖChan {
     constructor(c) {
         super(c);
     }
+    static new(chan) {
+        const öc = new MainÖChan(chan);
+        öc.peerBox = new PeerBox(öc);
+        öc.peerListEntry = peerList.newEntry(öc);
+        return öc;
+    }
 }
 // main
 (async () => {
     const uid = await UserIdentity.create(logTxt_generic, "Alice");
-    const chans = new Chans(uid, (chan) => new MainÖChan(chan));
+    const chans = new Chans(uid, (chan) => MainÖChan.new(chan));
     logTxt_generic(`My uid: ${chans.myID()}`);
     const chatBox = new ChatBox(chans);
     const incomingMessageHandler = {
@@ -313,9 +319,6 @@ class MainÖChan extends ÖChan {
         },
     };
     const onChanReady = (chan) => {
-        // The chan knows the peerBox and the PeerBox knowns the chan. Am I holding this correctly?
-        chan.peerBox = new PeerBox(chan);
-        peerList.insert(chan);
         peerList.refresh(chan);
     };
     chans.offerLoop((txt, level = "INFO") => logTo(document.getElementById("logarea_offer"), txt, level), onChanReady, incomingMessageHandler);
