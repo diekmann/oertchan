@@ -255,10 +255,13 @@ class Chans<C extends ÖChan> {
         this.uid = uid;
         this.newC = newC;
 
-        this.loopbackChan = {
-            peerName: this.myID(),
-            send: () => alert("please do not send to your loopback chan."),
-        } as unknown as C;
+        this.loopbackChan = Object.assign(new ÖChan(null as unknown as RTCDataChannel),
+            {
+                send: (data: string) => alert("please do not send to your loopback chan."),
+                peerUID: () => uid.uidHash.slice(0,4)+"...(myself)",
+                authStatus: {selfAuthenticated: true},
+                mutuallyAuthenticated: () => true,
+            }) as unknown as C;
     }
 
     // User ID
