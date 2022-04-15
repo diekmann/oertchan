@@ -294,6 +294,7 @@ class Chans<C extends ÖChan> {
         return res;
     }
 
+    // TODO: we could even test this method, ....
     private static parseIncoming(logger: Logger, chan: ÖChan, data: string): IncomingMessage {
         let msg: IncomingMessage = {};
         let d: {[k: string]: any};
