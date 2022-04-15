@@ -176,7 +176,7 @@ class Chans {
     incomingMessage(logger, handler, chan) {
         return async (event) => {
             logger(`handling received message from ${chan.peerUID()}`, "INFO");
-            let d;
+            let d; // TODO: need a type-safe way if handling this untrusted user data!
             try {
                 d = JSON.parse(event.data);
             }
@@ -184,7 +184,10 @@ class Chans {
                 logger(`From ${chan.peerUID()}, unparsable: ${event.data}`, "WARNING");
                 return;
             }
-            // authenticity? LOL! but we leak your IP anyways.
+            if (typeof d != "object" || d === null) {
+                logger(`From ${chan.peerUID()}, unparsable: ${event.data} did not return an object`, "WARNING");
+                return;
+            }
             if ('setPeerName' in d) {
                 const m = d.setPeerName;
                 if (chan.peerIdentity && m.initial) {
