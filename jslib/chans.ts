@@ -76,6 +76,7 @@ class UserIdentity {
     }
 
     async responseForChallenge(challenge: string): Promise<string> {
+        // TODO: make sure we only sign stuff which looks like a challenge and not arbitrary strings.
         const signature = await window.crypto.subtle.sign(
             UserIdentity.algorithm,
             this.key.privateKey,
@@ -140,12 +141,15 @@ class PeerIdentity {
         return s;
     }
 
-    private challenge: string;
+    private challenge?: string;
     generateChallenge(): string {
         this.challenge = window.crypto.randomUUID() + ":" + this.uidHash + ":" + this._displayName ;
         return this.challenge;
     }
     async verifyResponse(response: string): Promise<boolean> {
+        if (!this.challenge) {
+            throw new Error("cannot verify a response if there is no challenge.");
+        }
         let result = await window.crypto.subtle.verify(
             UserIdentity.algorithm,
             this.pubKey,
@@ -191,7 +195,7 @@ type SetPeerNameMessage = {
 
 class ÖChan {
     // warning, this may be an unknown PeerIdentity, i.e. null!
-    public peerIdentity: PeerIdentity | null;
+    public peerIdentity?: PeerIdentity | null;
     public authStatus: {
         selfAuthenticated: boolean // whether we have sent our response to remote's challenge and got an acknowledge.
     };

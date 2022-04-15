@@ -246,11 +246,11 @@ const peerList = (() => {
         li.style.animation = "blink-blue 1s";
     };
     return {
-        insert: (chan: MainÖChan) => {
+        newEntry: (chan: MainÖChan): HTMLLIElement => {
             const li = document.createElement("li");
             li.innerText = `new chan ${chan.peerFullIdentity()}`;
             peerList.appendChild(li);
-            chan.peerListEntry = li;
+            return li;
         },
         refresh: (chan: MainÖChan) => {
             const li = chan.peerListEntry;
@@ -262,18 +262,24 @@ const peerList = (() => {
 })();
 
 class MainÖChan extends ÖChan {
-    public peerBox: PeerBox;
-    public peerListEntry: HTMLLIElement;
+    public peerBox!: PeerBox;
+    public peerListEntry!: HTMLLIElement;
 
-    constructor(c: RTCDataChannel){
+    private constructor(c: RTCDataChannel){
         super(c);
+    }
+    static new(chan: RTCDataChannel): MainÖChan {
+        const öc = new MainÖChan(chan);
+        öc.peerBox = new PeerBox(öc);
+        öc.peerListEntry = peerList.newEntry(öc);
+        return öc;
     }
 }
 
 // main
 (async () => {
     const uid = await UserIdentity.create(logTxt_generic, "Alice");
-    const chans = new Chans(uid, (chan: RTCDataChannel) => new MainÖChan(chan));
+    const chans = new Chans(uid, (chan: RTCDataChannel) => MainÖChan.new(chan));
     logTxt_generic(`My uid: ${chans.myID()}`)
 
     const chatBox = new ChatBox(chans);
@@ -355,10 +361,6 @@ class MainÖChan extends ÖChan {
     };
 
     const onChanReady = (chan: MainÖChan) => {
-        // The chan knows the peerBox and the PeerBox knowns the chan. Am I holding this correctly?
-        chan.peerBox = new PeerBox(chan);
-
-        peerList.insert(chan);
         peerList.refresh(chan);
     };
 
