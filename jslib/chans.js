@@ -187,6 +187,7 @@ class Chans {
         }
         return res;
     }
+    // TODO: we could even test this method, ....
     static parseIncoming(logger, chan, data) {
         let msg = {};
         let d;
