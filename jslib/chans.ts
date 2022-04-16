@@ -294,19 +294,26 @@ class Chans<C extends ÖChan> {
         return res;
     }
 
-    // TODO: we could even test this method, ....
-    private static parseIncoming(logger: Logger, chan: ÖChan, data: string): IncomingMessage {
+    // Golang-style return type: [actualResult, error]
+    private static parseIncoming(data: string): [IncomingMessage, {logMe: string, sendMe: string}?] {
+        const safeToString = (x: unknown): string => {
+            if (x === null) {
+                return "null";
+            }
+            if (typeof x == "number" || typeof x == "string") {
+                return x.toString()
+            }
+            return "<not a string>"
+        }
         let msg: IncomingMessage = {};
-        let d: {[k: string]: any};
+        let d: {[k: string]: any}; // TODO: make safer by replacing `any` with `unknown`!!!
         try {
             d = JSON.parse(data);
         } catch (e) {
-            logger(`From ${chan.peerUID()}, unparsable: ${data}`, "WARNING");
-            return msg;
+            return [msg, {logMe: `unparsable: ${data}`, sendMe: ""}];
         }
         if (typeof d != "object" || d === null) {
-            logger(`From ${chan.peerUID()}, unparsable: ${data} did not return an object`, "WARNING");
-            return msg;
+            return [msg, {logMe: `unparsable: ${data} did not return an object`, sendMe: ""}];
         }
 
         if (d.setPeerName) {
@@ -329,61 +336,41 @@ class Chans<C extends ÖChan> {
         if (d.request){
             const method = d.request.method;
             if (!d.request.url) {
-                chan.send(JSON.stringify({
-                    response: {
-                        content: `request: needs url`,
-                    },
-                }));
-                return msg;
+                return [msg, {logMe: "", sendMe: `request: needs url`}];
             }
             if (method != "GET" && method != "POST") {
-                chan.send(JSON.stringify({
-                    response: {
-                        content: `request: unkown method "${method}"`,
-                    },
-                }));
-                return msg;
+                return [msg, {logMe: "", sendMe: `request: unkown method "${method}"`}];
             }
             if (method == "POST" && !('content' in d.request)) {
-                chan.send(JSON.stringify({
-                    response: {
-                        content: `request: POST needs content`,
-                    },
-                }));
-                return msg;
+                return [msg, {logMe: "", sendMe: `request: POST needs content`}];
             }
             let content = undefined;
             if (d.request.content) {
-                content = d.request.content.toString();
+                content = safeToString(d.request.content);
             }
 
-            msg.request = new RequestMessage(d.request.url.toString(), method, content);
+            msg.request = new RequestMessage(safeToString(d.request.url), method, content);
             delete d.request;
         }
 
         if (d.response) {
             if (!d.response.content) {
-                chan.send(JSON.stringify({
-                    response: {
-                        content: `response: needs content`,
-                    },
-                }));
-                return msg;
+                return [msg, {logMe: "", sendMe: `response: needs content`}];
             }
-            msg.response = new ResponseMessage(d.response.content.toString(), d.response.showPostForm);
+            msg.response = new ResponseMessage(safeToString(d.response.content), d.response.showPostForm);
             delete d.response;
         }
 
         if ('message' in d) {
-            msg.message = d.message.toString();
+            msg.message = safeToString(d.message);
             delete d.message;
         }
 
         if (Object.keys(d).length > 0) {
-            logger(`request contains unknown fields: ${JSON.stringify(d)}`, "WARNING");
+            return [msg, {logMe: `request contains unknown fields: ${JSON.stringify(d)}`, sendMe: ""}];
             //handler.default(chan, d); // TODO: I should just dummp this to the logger here and remove this API
         }
-        return msg;
+        return [msg, undefined];
     }
 
     private async handleSetPeerName(logger: Logger, chan: C, m: SetPeerNameMessage, mutuallyAuthenticatedHandler: (chan: C) => void) {
@@ -443,7 +430,20 @@ class Chans<C extends ÖChan> {
         return async (event: MessageEvent) => {
             logger(`handling received message from ${chan.peerUID()}`, "INFO");
 
-            const msg = Chans.parseIncoming(logger, chan, event.data);
+            const [msg, error] = Chans.parseIncoming(event.data);
+            if (error) {
+                if (error.logMe) {
+                    logger(`From ${chan.peerUID()}: ` + error.logMe, "WARNING");
+                }
+                if (error.sendMe) {
+                    chan.send(JSON.stringify({
+                        response: {
+                            content: error.sendMe,
+                        },
+                    }));
+                }
+                return;
+            }
 
             if (msg.setPeerName) {
                 this.handleSetPeerName(logger, chan, msg.setPeerName, handler.mutuallyAuthenticated);
