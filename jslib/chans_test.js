@@ -79,4 +79,81 @@ describe('chans', function () {
             assert.strictEqual(dn, 'Alice123');
         });
     });
+    describe('Chans.parseIncoming', function () {
+        it('Chans.parseIncoming error empty', function () {
+            const [msg, error] = Chans.parseIncoming('');
+            assert.deepEqual(msg, {});
+            assert.deepEqual(error, { logMe: 'unparsable: ', sendMe: '' });
+        });
+        it('Chans.parseIncoming error not an object', function () {
+            const [msg, error] = Chans.parseIncoming('42');
+            assert.deepEqual(msg, {});
+            assert.deepEqual(error, { logMe: 'unparsable: 42 did not return an object', sendMe: '' });
+        });
+        it('Chans.parseIncoming error not an object', function () {
+            const [msg, error] = Chans.parseIncoming('null');
+            assert.deepEqual(msg, {});
+            assert.deepEqual(error, { logMe: 'unparsable: null did not return an object', sendMe: '' });
+        });
+        it('Chans.parseIncoming success empty', function () {
+            const [msg, error] = Chans.parseIncoming('{}');
+            assert.deepEqual(msg, {});
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming success message', function () {
+            const [msg, error] = Chans.parseIncoming('{"message": "lol"}');
+            assert.deepEqual(msg, { message: 'lol' });
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming success message empty', function () {
+            const [msg, error] = Chans.parseIncoming('{"message": ""}');
+            assert.deepEqual(msg, { message: '' });
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming success message not a string (number)', function () {
+            const [msg, error] = Chans.parseIncoming('{"message": 42}');
+            assert.deepEqual(msg, { message: '42' });
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming success message not a string (null)', function () {
+            const [msg, error] = Chans.parseIncoming('{"message": null}');
+            assert.deepEqual(msg, { message: 'null' });
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming success message not a string (object)', function () {
+            const [msg, error] = Chans.parseIncoming('{"message": {}}');
+            assert.deepEqual(msg, { message: '<not a string>' });
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming error unknown field', function () {
+            const [msg, error] = Chans.parseIncoming('{"unknownfield": "lol"}');
+            assert.deepEqual(msg, {});
+            assert.deepEqual(error, { logMe: 'request contains unknown fields: {"unknownfield":"lol"}', sendMe: '' });
+        });
+        it('Chans.parseIncoming success request GET no content', function () {
+            const [msg, error] = Chans.parseIncoming('{"request": {"url": "/foo", "method": "GET"}}');
+            assert.deepEqual(msg, { request: new RequestMessage('/foo', 'GET', undefined) });
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming success request GET content', function () {
+            const [msg, error] = Chans.parseIncoming('{"request": {"url": "/foo", "method": "GET", "content": "lol"}}');
+            assert.deepEqual(msg, { request: new RequestMessage('/foo', 'GET', 'lol') });
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming error request POST no content', function () {
+            const [msg, error] = Chans.parseIncoming('{"request": {"url": "/foo", "method": "POST"}}');
+            assert.deepEqual(msg, {});
+            assert.deepEqual(error, { logMe: '', sendMe: 'request: POST needs content' });
+        });
+        it('Chans.parseIncoming success request POST content', function () {
+            const [msg, error] = Chans.parseIncoming('{"request": {"url": "/foo", "method": "POST", "content": "lol"}}');
+            assert.deepEqual(msg, { request: new RequestMessage('/foo', 'POST', 'lol') });
+            assert.deepEqual(error, undefined);
+        });
+        it('Chans.parseIncoming success request POST content additional field silently ignored', function () {
+            const [msg, error] = Chans.parseIncoming('{"request": {"url": "/foo", "method": "POST", "content": "lol", "extra field": "ignore me"}}');
+            assert.deepEqual(msg, { request: new RequestMessage('/foo', 'POST', 'lol') });
+            assert.deepEqual(error, undefined);
+        });
+    });
 });
