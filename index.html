@@ -24,6 +24,9 @@
             overflow-y: scroll;
         }
 
+        #logDEBUG:not(:checked) ~ div > span.logDEBUG {
+            display: none;
+        }
         span.logDEBUG {
             color: grey;
         }
@@ -161,6 +164,9 @@
     
     <div style="margin:20px; padding: 10px; border: 1px solid black; background-color: MediumAquamarine;">
         <div class="flexcontainer">
+
+            <input type="checkbox" id="logDEBUG" name="logDEBUG" checked>
+            <label for="logDEBUG">DEBUG</label>
             <div id="logarea_generic" class="logarea">Generic log messages will appear here.<br></div>
             <div id="logarea_offer" class="logarea">Log messages about sent offers will appear here.<br></div>
             <div id="logarea_accept" class="logarea">Log messages about accepting offers will appear here.<br></div>
