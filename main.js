@@ -2,7 +2,7 @@
 function appendHTML(to, text) {
     const userHasScrolled = (to.scrollTop + to.offsetHeight < to.scrollHeight);
     to.appendChild(text);
-    to.appendChild(document.createElement("br"));
+    text.appendChild(document.createElement("br"));
     if (!userHasScrolled) {
         to.scrollTop = to.scrollHeight;
         //text.scrollIntoView({
