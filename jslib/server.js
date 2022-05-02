@@ -10,12 +10,7 @@ const logger = (txt) => {
     elem.appendChild(t);
     elem.appendChild(document.createElement("br"));
 };
-async function serve(handler, onChanReady) {
-    const origPeerNameHandler = handler.mutuallyAuthenticated;
-    handler.mutuallyAuthenticated = (chan) => {
-        origPeerNameHandler(chan);
-        onChanReady(chan);
-    };
+async function serve(handler) {
     const uid = await UserIdentity.create(logger, "server");
     const chans = new Chans(uid, chan => new ÖChan(chan));
     const doNothingOnChanReady = (chan) => { };

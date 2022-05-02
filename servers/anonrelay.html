@@ -20,7 +20,11 @@
 let theChans = null;
 
 const incomingMessageHandler = {
-    mutuallyAuthenticated: (chan) => undefined,
+    mutuallyAuthenticated: (chan) => {
+        chan.send(JSON.stringify({
+            message: `Anon Relay Server: [relay](/relay)!!`
+        }));
+    },
     message: (chan, message) => {
         logger(`got message from ${chan.peerUID()}: ${message}`);
     },
@@ -63,14 +67,8 @@ const incomingMessageHandler = {
     },
 };
 
-const onChanReady = (chan) => {
-    chan.send(JSON.stringify({
-        message: `Anon Relay Server: [relay](/relay)!!`
-    }));
-};
-
 (async () => {
-    theChans = await serve(incomingMessageHandler, onChanReady);
+    theChans = await serve(incomingMessageHandler);
 })();
 </script>
 </body>

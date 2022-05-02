@@ -42,7 +42,11 @@ function wikiPage(page) {
 })();
 
 const incomingMessageHandler = {
-    mutuallyAuthenticated: (chan) => undefined,
+    mutuallyAuthenticated: (chan) => {
+        chan.send(JSON.stringify({
+            message: `Wikipedia Server: [Örtchen](/Örtchen)!!`
+        }));
+    },
     message: (chan, message) => {
         logger(`got message from ${chan.peerUID()}: ${message}`);
     },
@@ -65,13 +69,7 @@ const incomingMessageHandler = {
     },
 };
 
-const onChanReady = (chan) => {
-    chan.send(JSON.stringify({
-        message: `Wikipedia Server: [Örtchen](/Örtchen)!!`
-    }));
-};
-
-serve(incomingMessageHandler, onChanReady);
+serve(incomingMessageHandler);
 </script>
 </body>
 

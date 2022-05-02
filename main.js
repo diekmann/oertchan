@@ -97,9 +97,6 @@ class PeerBox {
     constructor(chan) {
         this.chan = chan;
         this.target = '/';
-        // Shoule be the following HTML. TODO: is there a nicer way?
-        // <div class="title"><span class="titletext" width="100%">title</span><span class="tileclose" style="float: right;">X</span></div>
-        // <div class="content">content</div>
         const elem = Object.assign(document.createElement('div'), {
             className: 'peerbox',
         });
@@ -251,7 +248,6 @@ class MainÖChan extends ÖChan {
                 message: `Check out [this cool link](/index)!!`
             }));
         },
-        // TODO: get rid of the peerName, we have the chan with an identity!
         message: (chan, message) => {
             chatBox.append(formatMessageHTML("From: ", chan.peerDisplayNameHTML(), parseMarkdown(ChatBox.formatLink(chan), message)));
         },

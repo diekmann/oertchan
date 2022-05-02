@@ -18,7 +18,11 @@
 <script>
 "use strict";
 const incomingMessageHandler = {
-    mutuallyAuthenticated: (chan) => undefined,
+    mutuallyAuthenticated: (chan) => {
+        chan.send(JSON.stringify({
+            message: `Ping server: [ping](/ping)!!`
+        }));
+    },
     message: (chan, message) => {
         logger(`got message from ${chan.peerUID()}: ${message}`);
     },
@@ -39,13 +43,7 @@ const incomingMessageHandler = {
     },
 };
 
-const onChanReady = (chan) => {
-    chan.send(JSON.stringify({
-        message: `Ping server: [ping](/ping)!!`
-    }));
-};
-
-serve(incomingMessageHandler, onChanReady);
+serve(incomingMessageHandler);
 </script>
 </body>
 
