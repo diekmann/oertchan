@@ -353,9 +353,6 @@ class MainÖChan extends ÖChan {
                 chan.peerBox.postFormHidden();
             }
         },
-        default: (chan, data) => {
-            chatBox.append(formatMessage(chan.peerUID(), document.createTextNode(`unknown contents: ${JSON.stringify(data)}`)));
-        },
     };
 
     const onChanReady = (chan: MainÖChan) => {

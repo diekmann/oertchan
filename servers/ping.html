@@ -38,9 +38,6 @@ const incomingMessageHandler = {
     response: (chan, response) => {
         logger(`response from ${chan.peerUID()}: ${response}`);
     },
-    default: (chan, data) => {
-        logger(`unknown contents from ${chan.peerUID()}: ${JSON.stringify(d)}`);
-    },
 };
 
 serve(incomingMessageHandler);
