@@ -317,6 +317,9 @@ class MainÖChan extends ÖChan {
                             }));
                             break;
                         case "POST":
+                            if (request.content === undefined) {
+                                return;
+                            }
                             // Echo back
                             chan.send(JSON.stringify({
                                 response: {
