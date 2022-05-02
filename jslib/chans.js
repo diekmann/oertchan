@@ -111,7 +111,6 @@ class PeerIdentity {
         return result;
     }
 }
-// TODO: these should be classes so we can be sure the data is actually well-formed once given to the message handler!
 class RequestMessage {
     constructor(url, method, content) {
         this.url = url;
