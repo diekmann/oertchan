@@ -190,8 +190,6 @@ type SetPeerNameMessage = {
     acknowledge?: boolean;
 }
 
-
-// TODO: these should be classes so we can be sure the data is actually well-formed once given to the message handler!
 class RequestMessage {
     constructor(readonly url: string, readonly method: "GET" | "POST", readonly content?: string) {}
 }

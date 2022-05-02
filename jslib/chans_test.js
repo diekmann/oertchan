@@ -24,6 +24,10 @@ describe('chans', function() {
             const hexStr = 'ff010242ab';
             assert.deepEqual(UserIdentity.unhexlify(hexStr), new Uint8Array([0xff, 0x1, 0x2, 0x42, 0xab]));
         });
+        it('unhexlify odd', function() {
+            const hexStr = 'f';
+            assert.deepEqual(UserIdentity.unhexlify(hexStr), new Uint8Array([]));
+        });
 
 
         it('uid lenghth 384 bits', async function() {
