@@ -256,7 +256,6 @@ class Chans {
         }
         if (Object.keys(d).length > 0) {
             return [msg, { logMe: `request contains unknown fields: ${JSON.stringify(d)}`, sendMe: "" }];
-            //handler.default(chan, d); // TODO: I should just dummp this to the logger here and remove this API
         }
         return [msg, undefined];
     }
